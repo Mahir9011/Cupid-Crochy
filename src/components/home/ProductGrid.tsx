@@ -18,11 +18,15 @@ interface Product {
 
 const getDefaultProducts = (): Product[] => {
   // Try to get products from localStorage first
-  const storedProducts = localStorage.getItem("products");
-  if (storedProducts) {
-    const allProducts = JSON.parse(storedProducts);
-    // Return only the first 6 products for the homepage grid
-    return allProducts.slice(0, 6);
+  try {
+    const storedProducts = localStorage.getItem("products");
+    if (storedProducts) {
+      const allProducts = JSON.parse(storedProducts);
+      // Return only the first 6 products for the homepage grid
+      return allProducts.slice(0, 6);
+    }
+  } catch (e) {
+    console.error("Error loading products:", e);
   }
 
   // Default products if none in localStorage
@@ -113,7 +117,7 @@ export default function ProductGrid({
               transition={{ delay: index * 0.1, duration: 0.5 }}
             >
               <Link to={`/product/${product.id}`}>
-                <Card className="overflow-hidden rounded-2xl border-none shadow-md hover:shadow-xl transition-shadow duration-300 h-full">
+                <Card className="overflow-hidden rounded-2xl border-none shadow-md hover:shadow-xl transition-shadow duration-300 h-full bg-white">
                   <div className="relative overflow-hidden group">
                     <img
                       src={product.image}
@@ -145,7 +149,10 @@ export default function ProductGrid({
                         </p>
                       </div>
                       <p className="font-bold text-lg">
-                        ৳{product.price.toFixed(2)}
+                        ৳
+                        {typeof product.price === "number"
+                          ? product.price.toFixed(2)
+                          : product.price}
                       </p>
                     </div>
                   </CardContent>

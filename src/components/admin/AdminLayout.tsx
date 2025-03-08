@@ -1,4 +1,5 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
+import "./AdminLayout.css";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -55,15 +56,25 @@ export default function AdminLayout({
     },
   ];
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     navigate("/login");
   };
 
+  useEffect(() => {
+    // Force a re-render after component mounts to fix layout issues
+    const timer = setTimeout(() => {
+      setIsMobileMenuOpen(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#F5DDEB]/30 flex">
+    <div className="admin-layout">
       {/* Sidebar - Desktop */}
-      <div className="hidden md:flex w-64 bg-[#5B1A1A] text-[#E8D7BC] flex-col fixed h-full">
+      <div
+        className={`admin-sidebar ${isMobileMenuOpen ? "mobile-open" : ""} hidden md:flex`}
+      >
         <div className="p-6">
           <h1 className="text-xl font-bold">Cupid Crochy</h1>
           <p className="text-sm text-[#E8D7BC]/80">Admin Panel</p>
@@ -77,7 +88,7 @@ export default function AdminLayout({
               <li key={item.id}>
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start ${activeTab === item.id ? "bg-[#E8D7BC]/20" : "hover:bg-[#E8D7BC]/10"}`}
+                  className={`w-full justify-start transition-all duration-200 ${activeTab === item.id ? "bg-[#E8D7BC]/20" : "hover:bg-[#F5DDEB] hover:text-[#5B1A1A]"}`}
                   onClick={() => navigate(item.path)}
                 >
                   {item.icon}
@@ -91,7 +102,7 @@ export default function AdminLayout({
         <div className="p-4">
           <Button
             variant="ghost"
-            className="w-full justify-start hover:bg-[#E8D7BC]/10"
+            className="w-full justify-start transition-all duration-200 hover:bg-[#F5DDEB] hover:text-[#5B1A1A]"
             onClick={handleSignOut}
           >
             <LogOut className="h-5 w-5" />
@@ -101,9 +112,9 @@ export default function AdminLayout({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-64">
+      <div className="admin-content">
         {/* Top Bar */}
-        <header className="bg-white shadow-sm p-4 flex items-center justify-between sticky top-0 z-10">
+        <header className="admin-header">
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -134,7 +145,7 @@ export default function AdminLayout({
                   <li key={item.id}>
                     <Button
                       variant="ghost"
-                      className={`w-full justify-start ${activeTab === item.id ? "bg-[#E8D7BC]/20" : "hover:bg-[#E8D7BC]/10"}`}
+                      className={`w-full justify-start transition-all duration-200 ${activeTab === item.id ? "bg-[#E8D7BC]/20" : "hover:bg-[#F5DDEB] hover:text-[#5B1A1A]"}`}
                       onClick={() => {
                         navigate(item.path);
                         setIsMobileMenuOpen(false);
@@ -148,7 +159,7 @@ export default function AdminLayout({
                 <li>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start hover:bg-[#E8D7BC]/10"
+                    className="w-full justify-start transition-all duration-200 hover:bg-[#F5DDEB] hover:text-[#5B1A1A]"
                     onClick={handleSignOut}
                   >
                     <LogOut className="h-5 w-5" />
@@ -161,7 +172,7 @@ export default function AdminLayout({
         )}
 
         {/* Page Content */}
-        <main className="p-6">{children}</main>
+        <main className="admin-main">{children}</main>
       </div>
     </div>
   );

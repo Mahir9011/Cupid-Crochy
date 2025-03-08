@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,14 +46,66 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load settings from localStorage
-    const storedSettings = localStorage.getItem("siteSettings");
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    } else {
-      // If no settings in localStorage, use default settings
-      localStorage.setItem("siteSettings", JSON.stringify(defaultSettings));
-    }
+    const loadSettings = async () => {
+      try {
+        // Try to load settings from Supabase
+        const { data, error } = await supabase
+          .from("settings")
+          .select("*")
+          .eq("key", "site_settings")
+          .single();
+
+        if (error) throw error;
+
+        if (data && data.value) {
+          setSettings(data.value);
+        } else {
+          // If no settings in Supabase, try localStorage
+          const storedSettings = localStorage.getItem("siteSettings");
+          if (storedSettings) {
+            setSettings(JSON.parse(storedSettings));
+          } else {
+            // If no settings in localStorage, use default settings
+            localStorage.setItem(
+              "siteSettings",
+              JSON.stringify(defaultSettings),
+            );
+            setSettings(defaultSettings);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading settings:", e);
+        // Try localStorage as fallback
+        try {
+          const storedSettings = localStorage.getItem("siteSettings");
+          if (storedSettings) {
+            setSettings(JSON.parse(storedSettings));
+          } else {
+            // If no settings in localStorage, use default settings
+            localStorage.setItem(
+              "siteSettings",
+              JSON.stringify(defaultSettings),
+            );
+            setSettings(defaultSettings);
+          }
+        } catch (innerError) {
+          console.error(
+            "Failed to load settings from localStorage",
+            innerError,
+          );
+          setSettings(defaultSettings);
+        }
+      }
+    };
+
+    // Load settings immediately
+    loadSettings();
+
+    // Set up interval to refresh settings every 5 seconds
+    const interval = setInterval(loadSettings, 5000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const handleInputChange = (
@@ -75,55 +128,57 @@ export default function SettingsPage() {
     }
   };
 
-  const saveSettings = () => {
-    localStorage.setItem("siteSettings", JSON.stringify(settings));
-    toast({
-      title: "Settings saved",
-      description: "Your changes have been saved successfully.",
-    });
+  const saveSettings = async () => {
+    try {
+      // Try to save to Supabase first
+      const { error } = await supabase.from("settings").upsert(
+        {
+          key: "site_settings",
+          value: settings,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+
+      if (error) throw error;
+
+      // Also save to localStorage as backup
+      localStorage.setItem("siteSettings", JSON.stringify(settings));
+
+      toast({
+        title: "Settings saved",
+        description: "Your changes have been saved successfully.",
+      });
+    } catch (e) {
+      console.error("Error saving settings to Supabase:", e);
+      // Fallback to localStorage only
+      localStorage.setItem("siteSettings", JSON.stringify(settings));
+
+      toast({
+        title: "Settings saved locally",
+        description: "Your changes have been saved to local storage only.",
+      });
+    }
   };
 
   return (
     <AdminLayout title="Settings" activeTab="settings">
-      <Tabs defaultValue="general">
+      <Tabs defaultValue="homepage">
         <TabsList className="mb-6">
-          <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="homepage">Homepage</TabsTrigger>
           <TabsTrigger value="contact">Contact & Social</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">General Settings</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="companyName">Company Name</Label>
-                <Input
-                  id="companyName"
-                  name="companyName"
-                  value={settings.companyName}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
-              onClick={saveSettings}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </TabsContent>
-
         <TabsContent value="homepage" className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Homepage Settings</h2>
+            <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+              Homepage Settings
+            </h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="heroImage">Hero Image URL</Label>
+                <Label htmlFor="heroImage" className="text-[#5B1A1A]">
+                  Hero Image URL
+                </Label>
                 <Input
                   id="heroImage"
                   name="heroImage"
@@ -142,7 +197,9 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="heroTitle">Hero Title</Label>
+                <Label htmlFor="heroTitle" className="text-[#5B1A1A]">
+                  Hero Title
+                </Label>
                 <Input
                   id="heroTitle"
                   name="heroTitle"
@@ -152,7 +209,9 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="heroSubtitle">Hero Subtitle</Label>
+                <Label htmlFor="heroSubtitle" className="text-[#5B1A1A]">
+                  Hero Subtitle
+                </Label>
                 <Input
                   id="heroSubtitle"
                   name="heroSubtitle"
@@ -165,7 +224,7 @@ export default function SettingsPage() {
 
           <div className="flex justify-end">
             <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
+              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
               onClick={saveSettings}
             >
               Save Changes
@@ -175,10 +234,14 @@ export default function SettingsPage() {
 
         <TabsContent value="contact" className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
+            <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+              Contact Information
+            </h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="companyEmail">Email Address</Label>
+                <Label htmlFor="companyEmail" className="text-[#5B1A1A]">
+                  Email Address
+                </Label>
                 <Input
                   id="companyEmail"
                   name="companyEmail"
@@ -188,7 +251,9 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="companyPhone">Phone Number</Label>
+                <Label htmlFor="companyPhone" className="text-[#5B1A1A]">
+                  Phone Number
+                </Label>
                 <Input
                   id="companyPhone"
                   name="companyPhone"
@@ -198,7 +263,9 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="companyAddress">Address</Label>
+                <Label htmlFor="companyAddress" className="text-[#5B1A1A]">
+                  Address
+                </Label>
                 <Textarea
                   id="companyAddress"
                   name="companyAddress"
@@ -210,11 +277,16 @@ export default function SettingsPage() {
 
             <Separator className="my-6" />
 
-            <h2 className="text-xl font-semibold mb-4">Social Media Links</h2>
+            <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+              Social Media Links
+            </h2>
             <div className="space-y-4">
               <div className="flex items-center">
                 <Facebook className="mr-2 h-5 w-5 text-blue-600" />
-                <Label htmlFor="socialLinks.facebook" className="w-24">
+                <Label
+                  htmlFor="socialLinks.facebook"
+                  className="w-24 text-[#5B1A1A]"
+                >
                   Facebook
                 </Label>
                 <Input
@@ -228,7 +300,10 @@ export default function SettingsPage() {
 
               <div className="flex items-center">
                 <Instagram className="mr-2 h-5 w-5 text-pink-600" />
-                <Label htmlFor="socialLinks.instagram" className="w-24">
+                <Label
+                  htmlFor="socialLinks.instagram"
+                  className="w-24 text-[#5B1A1A]"
+                >
                   Instagram
                 </Label>
                 <Input
@@ -242,7 +317,10 @@ export default function SettingsPage() {
 
               <div className="flex items-center">
                 <Twitter className="mr-2 h-5 w-5 text-blue-400" />
-                <Label htmlFor="socialLinks.twitter" className="w-24">
+                <Label
+                  htmlFor="socialLinks.twitter"
+                  className="w-24 text-[#5B1A1A]"
+                >
                   Twitter
                 </Label>
                 <Input
@@ -258,7 +336,7 @@ export default function SettingsPage() {
 
           <div className="flex justify-end">
             <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
+              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
               onClick={saveSettings}
             >
               Save Changes

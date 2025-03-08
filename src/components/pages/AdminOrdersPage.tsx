@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../../../supabase/auth";
 import OrderManagement from "../admin/OrderManagement";
+import "../admin/AdminLayout.css";
 
 export default function AdminOrdersPage() {
   const { user, loading } = useAuth();
@@ -14,11 +15,15 @@ export default function AdminOrdersPage() {
   }, [user, loading, navigate]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5DDEB]/30">
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
-    return null; // Will redirect in useEffect
+    return <Navigate to="/login" />;
   }
 
   return <OrderManagement />;

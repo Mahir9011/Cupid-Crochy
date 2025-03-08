@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, ShoppingBag } from "lucide-react";
 import CartItem from "./CartItem";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "./CartProvider";
 
 interface CartItem {
@@ -55,12 +55,18 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                 <div className="flex items-center">
                   <ShoppingBag className="h-5 w-5 text-[#5B1A1A] mr-2" />
                   <h2 className="text-lg font-semibold text-[#5B1A1A]">
-                    Your Cart (
-                    {cartItems.reduce(
-                      (total, item) => total + item.quantity,
-                      0,
-                    )}{" "}
-                    items)
+                    {cartItems.length > 0 ? (
+                      <>
+                        Your Cart (
+                        {cartItems.reduce(
+                          (total, item) => total + item.quantity,
+                          0,
+                        )}{" "}
+                        items)
+                      </>
+                    ) : (
+                      <>Shopping Cart</>
+                    )}
                   </h2>
                 </div>
                 <Button
@@ -86,10 +92,18 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     </p>
                     <Button
                       onClick={onClose}
-                      className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 rounded-xl"
+                      className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 rounded-xl mb-3"
                     >
                       Continue Shopping
                     </Button>
+                    <Link to="/order-tracking" onClick={onClose}>
+                      <Button
+                        variant="outline"
+                        className="border-[#5B1A1A]/30 text-[#5B1A1A] hover:bg-[#F5DDEB]/20 rounded-xl"
+                      >
+                        Track Your Order
+                      </Button>
+                    </Link>
                   </div>
                 ) : (
                   <div className="space-y-1">

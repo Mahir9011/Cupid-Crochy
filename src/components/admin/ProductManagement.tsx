@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,106 +64,157 @@ export default function ProductManagement() {
   });
 
   useEffect(() => {
-    // Load products from localStorage
-    const storedProducts = localStorage.getItem("products");
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    } else {
-      // If no products in localStorage, use default products
-      const defaultProducts = [
-        {
-          id: "1",
-          name: "Daisy Tote Bag",
-          price: 89.99,
-          image:
-            "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-          category: "Tote",
-          tags: ["summer", "floral", "large"],
-          isNew: true,
-          description:
-            "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use. Handcrafted with care using premium cotton yarn, this bag features a beautiful daisy pattern that adds a touch of elegance to any outfit. The reinforced handles ensure durability, while the spacious interior provides ample room for all your essentials.",
-          features: [
-            "Handmade with premium cotton yarn",
-            "Spacious interior with inner pocket",
-            "Reinforced handles for durability",
-            'Dimensions: 16" x 14" x 5"',
-            "Fully lined with cotton fabric",
-          ],
-          careInstructions: [
-            "Hand wash in cold water",
-            "Lay flat to dry",
-            "Do not bleach",
-            "Reshape while damp",
-          ],
-          additionalImages: [
-            "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-            "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          ],
-        },
-        {
-          id: "2",
-          name: "Summer Crossbody",
-          price: 64.99,
-          image:
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          category: "Crossbody",
-          tags: ["summer", "small", "casual"],
-          description:
-            "The Summer Crossbody bag is perfect for those days when you want to travel light. This compact yet stylish bag features an adjustable strap and secure closure to keep your essentials safe. The vibrant summer-inspired design adds a pop of color to any outfit.",
-          features: [
-            "Handcrafted with lightweight cotton yarn",
-            "Adjustable crossbody strap",
-            "Secure zipper closure",
-            'Dimensions: 8" x 6" x 2"',
-            "Inner lining with small pocket",
-          ],
-          careInstructions: [
-            "Spot clean with mild detergent",
-            "Air dry only",
-            "Do not iron",
-            "Store in dust bag when not in use",
-          ],
-          additionalImages: [
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-            "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
-            "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
-          ],
-        },
-        {
-          id: "3",
-          name: "Boho Bucket Bag",
-          price: 79.99,
-          image:
-            "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          category: "Bucket",
-          tags: ["boho", "medium", "pattern"],
-          isNew: true,
-          description:
-            "Embrace bohemian style with our Boho Bucket Bag. This trendy accessory features intricate pattern work and a drawstring closure for a secure yet easy-access design. Perfect for festivals, beach days, or adding a boho touch to your everyday look.",
-          features: [
-            "Handcrafted with eco-friendly cotton yarn",
-            "Drawstring closure with wooden beads",
-            "Colorful tassel details",
-            'Dimensions: 10" x 12" (diameter x height)',
-            "Adjustable shoulder strap",
-          ],
-          careInstructions: [
-            "Hand wash in cold water",
-            "Reshape while damp",
-            "Air dry away from direct sunlight",
-            "Store stuffed to maintain shape",
-          ],
-          additionalImages: [
-            "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-            "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          ],
-        },
-      ];
-      setProducts(defaultProducts);
-      localStorage.setItem("products", JSON.stringify(defaultProducts));
-    }
+    const loadProducts = async () => {
+      try {
+        // Try to load products from Supabase
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setProducts(data);
+        } else {
+          // If no products in Supabase, try localStorage
+          const storedProducts = localStorage.getItem("products");
+          if (storedProducts) {
+            setProducts(JSON.parse(storedProducts));
+          } else {
+            // If no products in localStorage, use default products
+            const defaultProducts = [
+              {
+                id: "1",
+                name: "Daisy Tote Bag",
+                price: 89.99,
+                image:
+                  "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+                category: "Tote",
+                tags: ["summer", "floral", "large"],
+                isNew: true,
+                description:
+                  "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use. Handcrafted with care using premium cotton yarn, this bag features a beautiful daisy pattern that adds a touch of elegance to any outfit. The reinforced handles ensure durability, while the spacious interior provides ample room for all your essentials.",
+                features: [
+                  "Handmade with premium cotton yarn",
+                  "Spacious interior with inner pocket",
+                  "Reinforced handles for durability",
+                  'Dimensions: 16" x 14" x 5"',
+                  "Fully lined with cotton fabric",
+                ],
+                careInstructions: [
+                  "Hand wash in cold water",
+                  "Lay flat to dry",
+                  "Do not bleach",
+                  "Reshape while damp",
+                ],
+                additionalImages: [
+                  "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+                  "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+                  "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+                ],
+              },
+              {
+                id: "2",
+                name: "Summer Crossbody",
+                price: 64.99,
+                image:
+                  "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+                category: "Crossbody",
+                tags: ["summer", "small", "casual"],
+                description:
+                  "The Summer Crossbody bag is perfect for those days when you want to travel light. This compact yet stylish bag features an adjustable strap and secure closure to keep your essentials safe. The vibrant summer-inspired design adds a pop of color to any outfit.",
+                features: [
+                  "Handcrafted with lightweight cotton yarn",
+                  "Adjustable crossbody strap",
+                  "Secure zipper closure",
+                  'Dimensions: 8" x 6" x 2"',
+                  "Inner lining with small pocket",
+                ],
+                careInstructions: [
+                  "Spot clean with mild detergent",
+                  "Air dry only",
+                  "Do not iron",
+                  "Store in dust bag when not in use",
+                ],
+                additionalImages: [
+                  "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+                  "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
+                  "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
+                ],
+              },
+              {
+                id: "3",
+                name: "Boho Bucket Bag",
+                price: 79.99,
+                image:
+                  "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+                category: "Bucket",
+                tags: ["boho", "medium", "pattern"],
+                isNew: true,
+                description:
+                  "Embrace bohemian style with our Boho Bucket Bag. This trendy accessory features intricate pattern work and a drawstring closure for a secure yet easy-access design. Perfect for festivals, beach days, or adding a boho touch to your everyday look.",
+                features: [
+                  "Handcrafted with eco-friendly cotton yarn",
+                  "Drawstring closure with wooden beads",
+                  "Colorful tassel details",
+                  'Dimensions: 10" x 12" (diameter x height)',
+                  "Adjustable shoulder strap",
+                ],
+                careInstructions: [
+                  "Hand wash in cold water",
+                  "Reshape while damp",
+                  "Air dry away from direct sunlight",
+                  "Store stuffed to maintain shape",
+                ],
+                additionalImages: [
+                  "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+                  "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+                  "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+                ],
+              },
+            ];
+
+            // Save default products to Supabase
+            try {
+              await supabase.from("products").upsert(defaultProducts);
+            } catch (dbError) {
+              console.error(
+                "Error saving default products to Supabase:",
+                dbError,
+              );
+            }
+
+            setProducts(defaultProducts);
+            localStorage.setItem("products", JSON.stringify(defaultProducts));
+          }
+        }
+      } catch (e) {
+        console.error("Error loading products:", e);
+        // Try localStorage as fallback
+        try {
+          const storedProducts = localStorage.getItem("products");
+          if (storedProducts) {
+            setProducts(JSON.parse(storedProducts));
+          }
+        } catch (innerError) {
+          console.error(
+            "Error loading products from localStorage:",
+            innerError,
+          );
+          setProducts([]);
+        }
+      }
+    };
+
+    // Load products immediately
+    loadProducts();
+
+    // Set up interval to refresh products every 5 seconds
+    const interval = setInterval(loadProducts, 5000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const filteredProducts = products.filter((product) =>
@@ -231,43 +284,118 @@ export default function ProductManagement() {
     });
   };
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     const newProduct = {
       ...formData,
       id: Date.now().toString(),
+      created_at: new Date().toISOString(),
     } as Product;
 
-    const updatedProducts = [...products, newProduct];
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    resetForm();
-    setIsAddDialogOpen(false);
+    try {
+      // Try to save to Supabase first
+      const { error } = await supabase.from("products").insert(newProduct);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+
+      // Also save to localStorage as backup
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+      resetForm();
+      setIsAddDialogOpen(false);
+    } catch (e) {
+      console.error("Error saving product to Supabase:", e);
+      // Fallback to localStorage only
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+      resetForm();
+      setIsAddDialogOpen(false);
+    }
   };
 
-  const handleEditProduct = () => {
+  const handleEditProduct = async () => {
     if (!selectedProduct) return;
 
-    const updatedProducts = products.map((product) =>
-      product.id === selectedProduct.id
-        ? ({ ...formData, id: product.id } as Product)
-        : product,
-    );
+    const updatedProduct = {
+      ...formData,
+      id: selectedProduct.id,
+      updated_at: new Date().toISOString(),
+    } as Product;
 
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    setIsEditDialogOpen(false);
+    try {
+      // Try to update in Supabase first
+      const { error } = await supabase
+        .from("products")
+        .update(updatedProduct)
+        .eq("id", selectedProduct.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedProducts = products.map((product) =>
+        product.id === selectedProduct.id ? updatedProduct : product,
+      );
+
+      setProducts(updatedProducts);
+
+      // Also save to localStorage as backup
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+      setIsEditDialogOpen(false);
+    } catch (e) {
+      console.error("Error updating product in Supabase:", e);
+      // Fallback to localStorage only
+      const updatedProducts = products.map((product) =>
+        product.id === selectedProduct.id ? updatedProduct : product,
+      );
+
+      setProducts(updatedProducts);
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+      setIsEditDialogOpen(false);
+    }
   };
 
-  const handleDeleteProduct = () => {
+  const handleDeleteProduct = async () => {
     if (!selectedProduct) return;
 
-    const updatedProducts = products.filter(
-      (product) => product.id !== selectedProduct.id,
-    );
+    try {
+      // Try to delete from Supabase first
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", selectedProduct.id);
 
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    setIsDeleteDialogOpen(false);
+      if (error) throw error;
+
+      // Update local state
+      const updatedProducts = products.filter(
+        (product) => product.id !== selectedProduct.id,
+      );
+
+      setProducts(updatedProducts);
+
+      // Also update localStorage as backup
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+      setIsDeleteDialogOpen(false);
+    } catch (e) {
+      console.error("Error deleting product from Supabase:", e);
+      // Fallback to localStorage only
+      const updatedProducts = products.filter(
+        (product) => product.id !== selectedProduct.id,
+      );
+
+      setProducts(updatedProducts);
+      localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const openEditDialog = (product: Product) => {
@@ -310,7 +438,7 @@ export default function ProductManagement() {
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90">
+            <Button className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]">
               <Plus className="mr-2 h-4 w-4" /> Add Product
             </Button>
           </DialogTrigger>
@@ -521,7 +649,7 @@ export default function ProductManagement() {
                 Cancel
               </Button>
               <Button
-                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
+                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
                 onClick={handleAddProduct}
               >
                 Add Product
@@ -553,7 +681,13 @@ export default function ProductManagement() {
               </TableRow>
             ) : (
               filteredProducts.map((product) => (
-                <TableRow key={product.id}>
+                <motion.tr
+                  key={product.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="hover:bg-[#F5DDEB]/10 transition-colors duration-200"
+                >
                   <TableCell>
                     <div className="h-12 w-12 rounded overflow-hidden">
                       <img
@@ -565,7 +699,12 @@ export default function ProductManagement() {
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.category}</TableCell>
-                  <TableCell>৳{product.price.toFixed(2)}</TableCell>
+                  <TableCell>
+                    ৳
+                    {typeof product.price === "number"
+                      ? product.price.toFixed(2)
+                      : "0.00"}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {product.tags.map((tag) => (
@@ -598,7 +737,7 @@ export default function ProductManagement() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))
             )}
           </TableBody>
@@ -810,7 +949,7 @@ export default function ProductManagement() {
               Cancel
             </Button>
             <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
+              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
               onClick={handleEditProduct}
             >
               Save Changes

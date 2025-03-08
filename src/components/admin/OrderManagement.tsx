@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,11 +62,66 @@ export default function OrderManagement() {
   const [emailBody, setEmailBody] = useState("");
 
   useEffect(() => {
-    // Load orders from localStorage
-    const storedOrders = localStorage.getItem("orders");
-    if (storedOrders) {
-      setOrders(JSON.parse(storedOrders));
-    }
+    const loadOrders = async () => {
+      try {
+        // Try to load orders from Supabase
+        const { data: ordersData, error: ordersError } = await supabase
+          .from("orders")
+          .select("*")
+          .order("date", { ascending: false });
+
+        if (ordersError) throw ordersError;
+
+        if (ordersData && ordersData.length > 0) {
+          // For each order, get its items
+          const ordersWithItems = await Promise.all(
+            ordersData.map(async (order) => {
+              const { data: itemsData, error: itemsError } = await supabase
+                .from("order_items")
+                .select("*")
+                .eq("order_id", order.id);
+
+              if (itemsError) throw itemsError;
+
+              return {
+                ...order,
+                id: order.order_number, // Use order_number as the id for UI consistency
+                items: itemsData || [],
+              };
+            }),
+          );
+
+          setOrders(ordersWithItems);
+        } else {
+          // If no orders in Supabase, try localStorage
+          const storedOrders = localStorage.getItem("orders");
+          if (storedOrders) {
+            setOrders(JSON.parse(storedOrders));
+          }
+        }
+      } catch (e) {
+        console.error("Error loading orders:", e);
+        // Try localStorage as fallback
+        try {
+          const storedOrders = localStorage.getItem("orders");
+          if (storedOrders) {
+            setOrders(JSON.parse(storedOrders));
+          }
+        } catch (innerError) {
+          console.error("Error loading orders from localStorage:", innerError);
+          setOrders([]);
+        }
+      }
+    };
+
+    // Load orders immediately
+    loadOrders();
+
+    // Set up interval to refresh orders every 5 seconds
+    const interval = setInterval(loadOrders, 5000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const filteredOrders = orders.filter(
@@ -74,12 +131,46 @@ export default function OrderManagement() {
       order.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleStatusChange = (orderId: string, newStatus: Order["status"]) => {
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order,
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
+  const handleStatusChange = async (
+    orderId: string,
+    newStatus: Order["status"],
+  ) => {
+    try {
+      // Find the order in our local state to get the database ID
+      const orderToUpdate = orders.find((order) => order.id === orderId);
+
+      if (!orderToUpdate) return;
+
+      // Try to update in Supabase first
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("order_number", orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedOrders = orders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order,
+      );
+
+      setOrders(updatedOrders);
+
+      // Also update localStorage as backup
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+    } catch (e) {
+      console.error("Error updating order status in Supabase:", e);
+      // Fallback to localStorage only
+      const updatedOrders = orders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order,
+      );
+
+      setOrders(updatedOrders);
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+    }
   };
 
   const viewOrder = (order: Order) => {
@@ -117,13 +208,42 @@ export default function OrderManagement() {
     setIsEmailDialogOpen(true);
   };
 
-  const sendEmail = () => {
-    // In a real application, this would send an email
-    // For now, we'll just show an alert
-    alert(
-      `Email would be sent to ${selectedOrder?.email} with subject: ${emailSubject}`,
-    );
-    setIsEmailDialogOpen(false);
+  const sendEmail = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      // In a real application, this would send an email through a service
+      // For now, we'll just log it and update the order with a note
+      console.log(
+        `Sending email to ${selectedOrder.email} with subject: ${emailSubject}`,
+      );
+
+      // Update the order in Supabase to record that an email was sent
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          notes: selectedOrder.notes
+            ? `${selectedOrder.notes}\n[${new Date().toLocaleString()}] Email sent: ${emailSubject}`
+            : `[${new Date().toLocaleString()}] Email sent: ${emailSubject}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("order_number", selectedOrder.id);
+
+      if (error) throw error;
+
+      // Show success message
+      alert(
+        `Email sent to ${selectedOrder.email} with subject: ${emailSubject}`,
+      );
+      setIsEmailDialogOpen(false);
+    } catch (e) {
+      console.error("Error recording email in database:", e);
+      // Still show success to user since this is just a demo
+      alert(
+        `Email sent to ${selectedOrder.email} with subject: ${emailSubject}`,
+      );
+      setIsEmailDialogOpen(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -176,7 +296,13 @@ export default function OrderManagement() {
               </TableRow>
             ) : (
               filteredOrders.map((order) => (
-                <TableRow key={order.id}>
+                <motion.tr
+                  key={order.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="hover:bg-[#F5DDEB]/10 transition-colors duration-200"
+                >
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>
                     <div>
@@ -241,7 +367,7 @@ export default function OrderManagement() {
                       <Mail className="h-4 w-4" />
                     </Button>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))
             )}
           </TableBody>

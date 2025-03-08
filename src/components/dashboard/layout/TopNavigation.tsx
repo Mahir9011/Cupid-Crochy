@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "../../../../supabase/auth";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 interface TopNavigationProps {
@@ -33,6 +34,7 @@ const TopNavigation = ({
   ],
 }: TopNavigationProps) => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) return null;
 
@@ -122,7 +124,12 @@ const TopNavigation = ({
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => signOut()}>
+            <DropdownMenuItem
+              onSelect={async () => {
+                await signOut();
+                navigate("/login");
+              }}
+            >
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

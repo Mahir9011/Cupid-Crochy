@@ -5,15 +5,28 @@ import { Link } from "react-router-dom";
 
 export default function HeroBanner() {
   // Get settings from localStorage or use defaults
-  const settings = JSON.parse(
-    localStorage.getItem("siteSettings") ||
-      JSON.stringify({
-        heroImage:
-          "https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=1200&q=80",
-        heroTitle: "Handcrafted Crochet Bags",
-        heroSubtitle: "Made with love, carried with pride",
-      }),
-  );
+  const defaultSettings = {
+    heroImage:
+      "https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=1200&q=80",
+    heroTitle: "Handcrafted Crochet Bags",
+    heroSubtitle: "Made with love, carried with pride",
+  };
+
+  let settings = defaultSettings;
+  try {
+    const storedSettings = localStorage.getItem("siteSettings");
+    if (storedSettings) {
+      const parsedSettings = JSON.parse(storedSettings);
+      settings = {
+        heroImage: parsedSettings.heroImage || defaultSettings.heroImage,
+        heroTitle: parsedSettings.heroTitle || defaultSettings.heroTitle,
+        heroSubtitle:
+          parsedSettings.heroSubtitle || defaultSettings.heroSubtitle,
+      };
+    }
+  } catch (e) {
+    console.error("Error loading settings:", e);
+  }
 
   return (
     <div className="relative w-full h-[80vh] min-h-[600px] bg-[#F5DDEB]/80 overflow-hidden rounded-b-3xl">

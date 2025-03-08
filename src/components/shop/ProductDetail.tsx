@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { getProductById } from "@/lib/supabase";
 import { useCart } from "../cart/CartProvider";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -30,110 +31,7 @@ interface Product {
   additionalImages?: string[];
 }
 
-const getProducts = (): Product[] => {
-  // Try to get products from localStorage first
-  const storedProducts = localStorage.getItem("products");
-  if (storedProducts) {
-    return JSON.parse(storedProducts);
-  }
-
-  // Default products if none in localStorage
-  const defaultProducts: Product[] = [
-    {
-      id: "1",
-      name: "Daisy Tote Bag",
-      price: 89.99,
-      image:
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-      category: "Tote",
-      tags: ["summer", "floral", "large"],
-      isNew: true,
-      description:
-        "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use. Handcrafted with care using premium cotton yarn, this bag features a beautiful daisy pattern that adds a touch of elegance to any outfit. The reinforced handles ensure durability, while the spacious interior provides ample room for all your essentials.",
-      features: [
-        "Handmade with premium cotton yarn",
-        "Spacious interior with inner pocket",
-        "Reinforced handles for durability",
-        'Dimensions: 16" x 14" x 5"',
-        "Fully lined with cotton fabric",
-      ],
-      careInstructions: [
-        "Hand wash in cold water",
-        "Lay flat to dry",
-        "Do not bleach",
-        "Reshape while damp",
-      ],
-      additionalImages: [
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-      ],
-    },
-    {
-      id: "2",
-      name: "Summer Crossbody",
-      price: 64.99,
-      image:
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-      category: "Crossbody",
-      tags: ["summer", "small", "casual"],
-      description:
-        "The Summer Crossbody bag is perfect for those days when you want to travel light. This compact yet stylish bag features an adjustable strap and secure closure to keep your essentials safe. The vibrant summer-inspired design adds a pop of color to any outfit.",
-      features: [
-        "Handcrafted with lightweight cotton yarn",
-        "Adjustable crossbody strap",
-        "Secure zipper closure",
-        'Dimensions: 8" x 6" x 2"',
-        "Inner lining with small pocket",
-      ],
-      careInstructions: [
-        "Spot clean with mild detergent",
-        "Air dry only",
-        "Do not iron",
-        "Store in dust bag when not in use",
-      ],
-      additionalImages: [
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
-        "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
-      ],
-    },
-    {
-      id: "3",
-      name: "Boho Bucket Bag",
-      price: 79.99,
-      image:
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-      category: "Bucket",
-      tags: ["boho", "medium", "pattern"],
-      isNew: true,
-      description:
-        "Embrace bohemian style with our Boho Bucket Bag. This trendy accessory features intricate pattern work and a drawstring closure for a secure yet easy-access design. Perfect for festivals, beach days, or adding a boho touch to your everyday look.",
-      features: [
-        "Handcrafted with eco-friendly cotton yarn",
-        "Drawstring closure with wooden beads",
-        "Colorful tassel details",
-        'Dimensions: 10" x 12" (diameter x height)',
-        "Adjustable shoulder strap",
-      ],
-      careInstructions: [
-        "Hand wash in cold water",
-        "Reshape while damp",
-        "Air dry away from direct sunlight",
-        "Store stuffed to maintain shape",
-      ],
-      additionalImages: [
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-      ],
-    },
-  ];
-
-  return defaultProducts;
-};
-
-const products = getProducts();
+// Products will be loaded from Supabase
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -141,8 +39,60 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const { openCart, addToCart } = useCart();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const product = products.find((p) => p.id === id) || products[0];
+  useEffect(() => {
+    async function loadProduct() {
+      if (!id) return;
+
+      try {
+        setLoading(true);
+        const productData = await getProductById(id);
+        if (productData) {
+          setProduct(productData);
+        }
+      } catch (error) {
+        console.error("Error loading product:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="pt-24 pb-16 min-h-screen bg-[#F5DDEB]/30 flex items-center justify-center">
+          <div className="animate-pulse text-[#5B1A1A]">Loading product...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!product) {
+    return (
+      <Layout>
+        <div className="pt-24 pb-16 min-h-screen bg-[#F5DDEB]/30">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-2xl font-bold text-[#5B1A1A]">
+              Product not found
+            </h2>
+            <p className="mt-4 text-[#5B1A1A]/70">
+              The product you're looking for doesn't exist or has been removed.
+            </p>
+            <Link to="/shop" className="mt-6 inline-block">
+              <Button className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-white">
+                Return to Shop
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const handleIncrement = () => {
     setQuantity((prev) => prev + 1);
@@ -291,6 +241,22 @@ export default function ProductDetail() {
                       <Share2 className="mr-2 h-4 w-4" />
                       Share
                     </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {product.tags.slice(0, 2).map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-[#F5DDEB]/50 text-[#5B1A1A] px-2 py-0.5 rounded-full capitalize"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {product.tags.length > 2 && (
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        +{product.tags.length - 2}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getProducts } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,105 +19,7 @@ interface Product {
   isNew?: boolean;
 }
 
-const getProducts = (): Product[] => {
-  // Try to get products from localStorage first
-  const storedProducts = localStorage.getItem("products");
-  if (storedProducts) {
-    return JSON.parse(storedProducts);
-  }
-
-  // Default products if none in localStorage
-  const defaultProducts: Product[] = [
-    {
-      id: "1",
-      name: "Daisy Tote Bag",
-      price: 89.99,
-      image:
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500&q=80",
-      category: "Tote",
-      tags: ["summer", "floral", "large"],
-      isNew: true,
-    },
-    {
-      id: "2",
-      name: "Summer Crossbody",
-      price: 64.99,
-      image:
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=500&q=80",
-      category: "Crossbody",
-      tags: ["summer", "small", "casual"],
-    },
-    {
-      id: "3",
-      name: "Boho Bucket Bag",
-      price: 79.99,
-      image:
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=500&q=80",
-      category: "Bucket",
-      tags: ["boho", "medium", "pattern"],
-      isNew: true,
-    },
-    {
-      id: "4",
-      name: "Mini Clutch",
-      price: 49.99,
-      image:
-        "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&q=80",
-      category: "Clutch",
-      tags: ["evening", "small", "elegant"],
-    },
-    {
-      id: "5",
-      name: "Pastel Shoulder Bag",
-      price: 69.99,
-      image:
-        "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=500&q=80",
-      category: "Shoulder",
-      tags: ["pastel", "medium", "casual"],
-    },
-    {
-      id: "6",
-      name: "Floral Handbag",
-      price: 94.99,
-      image:
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=500&q=80",
-      category: "Handbag",
-      tags: ["floral", "medium", "elegant"],
-    },
-    {
-      id: "7",
-      name: "Vintage Tote",
-      price: 84.99,
-      image:
-        "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500&q=80",
-      category: "Tote",
-      tags: ["vintage", "large", "pattern"],
-    },
-    {
-      id: "8",
-      name: "Minimalist Crossbody",
-      price: 59.99,
-      image:
-        "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=500&q=80",
-      category: "Crossbody",
-      tags: ["minimalist", "small", "casual"],
-    },
-    {
-      id: "9",
-      name: "Festival Bucket Bag",
-      price: 74.99,
-      image:
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=500&q=80",
-      category: "Bucket",
-      tags: ["festival", "medium", "colorful"],
-      isNew: true,
-    },
-  ];
-
-  return defaultProducts;
-};
-
-const products = getProducts();
+// Products will be loaded from Supabase
 
 const categories = [
   "All",
@@ -146,11 +49,31 @@ const tags = [
 ];
 
 export default function ProductsPage() {
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load products from Supabase
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        setLoading(true);
+        const productsData = await getProducts();
+        setProducts(productsData);
+        setFilteredProducts(productsData);
+      } catch (error) {
+        console.error("Error loading products:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProducts();
+  }, []);
 
   useEffect(() => {
     let result = [...products];
@@ -397,7 +320,7 @@ export default function ProductsPage() {
                       transition={{ delay: index * 0.05, duration: 0.3 }}
                     >
                       <Link to={`/product/${product.id}`}>
-                        <Card className="overflow-hidden rounded-2xl border-none shadow-md hover:shadow-xl transition-shadow duration-300 h-full">
+                        <Card className="overflow-hidden rounded-2xl border-none shadow-md hover:shadow-xl transition-shadow duration-300 h-full bg-white">
                           <div className="relative overflow-hidden group">
                             <img
                               src={product.image}
@@ -438,20 +361,23 @@ export default function ProductsPage() {
                                   {product.tags.slice(0, 2).map((tag) => (
                                     <span
                                       key={tag}
-                                      className="text-xs text-[#5B1A1A]/60 capitalize"
+                                      className="text-xs bg-[#F5DDEB]/50 text-[#5B1A1A] px-2 py-0.5 rounded-full capitalize"
                                     >
                                       {tag}
                                     </span>
                                   ))}
                                   {product.tags.length > 2 && (
-                                    <span className="text-xs text-[#5B1A1A]/60">
+                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                                       +{product.tags.length - 2}
                                     </span>
                                   )}
                                 </div>
                               </div>
                               <p className="font-bold text-lg">
-                                ৳{product.price.toFixed(2)}
+                                ৳
+                                {typeof product.price === "number"
+                                  ? product.price.toFixed(2)
+                                  : product.price}
                               </p>
                             </div>
                           </CardContent>
