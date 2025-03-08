@@ -11,13 +11,14 @@ import {
   LogOut,
   Menu,
   X,
+  Tag,
 } from "lucide-react";
 import { useAuth } from "../../../supabase/auth";
 
 interface AdminLayoutProps {
   children: ReactNode;
   title: string;
-  activeTab: "dashboard" | "products" | "orders" | "settings";
+  activeTab: "dashboard" | "products" | "orders" | "categories" | "settings";
 }
 
 export default function AdminLayout({
@@ -47,6 +48,12 @@ export default function AdminLayout({
       label: "Orders",
       path: "/admin/orders",
       id: "orders",
+    },
+    {
+      icon: <Tag className="h-5 w-5" />,
+      label: "Categories",
+      path: "/admin/categories",
+      id: "categories",
     },
     {
       icon: <Settings className="h-5 w-5" />,

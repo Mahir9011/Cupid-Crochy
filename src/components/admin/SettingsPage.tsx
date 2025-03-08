@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -170,178 +171,190 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="homepage" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
-              Homepage Settings
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="heroImage" className="text-[#5B1A1A]">
-                  Hero Image URL
-                </Label>
-                <Input
-                  id="heroImage"
-                  name="heroImage"
-                  value={settings.heroImage}
-                  onChange={handleInputChange}
-                />
-                {settings.heroImage && (
-                  <div className="mt-2 rounded-md overflow-hidden h-40">
-                    <img
-                      src={settings.heroImage}
-                      alt="Hero Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+                Homepage Settings
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="heroImage" className="text-[#5B1A1A]">
+                    Hero Image URL
+                  </Label>
+                  <Input
+                    id="heroImage"
+                    name="heroImage"
+                    value={settings.heroImage}
+                    onChange={handleInputChange}
+                  />
+                  {settings.heroImage && (
+                    <div className="mt-2 rounded-md overflow-hidden h-40">
+                      <img
+                        src={settings.heroImage}
+                        alt="Hero Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
 
-              <div>
-                <Label htmlFor="heroTitle" className="text-[#5B1A1A]">
-                  Hero Title
-                </Label>
-                <Input
-                  id="heroTitle"
-                  name="heroTitle"
-                  value={settings.heroTitle}
-                  onChange={handleInputChange}
-                />
-              </div>
+                <div>
+                  <Label htmlFor="heroTitle" className="text-[#5B1A1A]">
+                    Hero Title
+                  </Label>
+                  <Input
+                    id="heroTitle"
+                    name="heroTitle"
+                    value={settings.heroTitle}
+                    onChange={handleInputChange}
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="heroSubtitle" className="text-[#5B1A1A]">
-                  Hero Subtitle
-                </Label>
-                <Input
-                  id="heroSubtitle"
-                  name="heroSubtitle"
-                  value={settings.heroSubtitle}
-                  onChange={handleInputChange}
-                />
+                <div>
+                  <Label htmlFor="heroSubtitle" className="text-[#5B1A1A]">
+                    Hero Subtitle
+                  </Label>
+                  <Input
+                    id="heroSubtitle"
+                    name="heroSubtitle"
+                    value={settings.heroSubtitle}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-end">
-            <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
-              onClick={saveSettings}
-            >
-              Save Changes
-            </Button>
-          </div>
+            <div className="flex justify-end">
+              <Button
+                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
+                onClick={saveSettings}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="contact" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
-              Contact Information
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="companyEmail" className="text-[#5B1A1A]">
-                  Email Address
-                </Label>
-                <Input
-                  id="companyEmail"
-                  name="companyEmail"
-                  value={settings.companyEmail}
-                  onChange={handleInputChange}
-                />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+                Contact Information
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="companyEmail" className="text-[#5B1A1A]">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="companyEmail"
+                    name="companyEmail"
+                    value={settings.companyEmail}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="companyPhone" className="text-[#5B1A1A]">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="companyPhone"
+                    name="companyPhone"
+                    value={settings.companyPhone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="companyAddress" className="text-[#5B1A1A]">
+                    Address
+                  </Label>
+                  <Textarea
+                    id="companyAddress"
+                    name="companyAddress"
+                    value={settings.companyAddress}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="companyPhone" className="text-[#5B1A1A]">
-                  Phone Number
-                </Label>
-                <Input
-                  id="companyPhone"
-                  name="companyPhone"
-                  value={settings.companyPhone}
-                  onChange={handleInputChange}
-                />
-              </div>
+              <Separator className="my-6" />
 
-              <div>
-                <Label htmlFor="companyAddress" className="text-[#5B1A1A]">
-                  Address
-                </Label>
-                <Textarea
-                  id="companyAddress"
-                  name="companyAddress"
-                  value={settings.companyAddress}
-                  onChange={handleInputChange}
-                />
+              <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+                Social Media Links
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Facebook className="mr-2 h-5 w-5 text-blue-600" />
+                  <Label
+                    htmlFor="socialLinks.facebook"
+                    className="w-24 text-[#5B1A1A]"
+                  >
+                    Facebook
+                  </Label>
+                  <Input
+                    id="socialLinks.facebook"
+                    name="socialLinks.facebook"
+                    value={settings.socialLinks.facebook}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <Instagram className="mr-2 h-5 w-5 text-pink-600" />
+                  <Label
+                    htmlFor="socialLinks.instagram"
+                    className="w-24 text-[#5B1A1A]"
+                  >
+                    Instagram
+                  </Label>
+                  <Input
+                    id="socialLinks.instagram"
+                    name="socialLinks.instagram"
+                    value={settings.socialLinks.instagram}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <Twitter className="mr-2 h-5 w-5 text-blue-400" />
+                  <Label
+                    htmlFor="socialLinks.twitter"
+                    className="w-24 text-[#5B1A1A]"
+                  >
+                    Twitter
+                  </Label>
+                  <Input
+                    id="socialLinks.twitter"
+                    name="socialLinks.twitter"
+                    value={settings.socialLinks.twitter}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                  />
+                </div>
               </div>
             </div>
 
-            <Separator className="my-6" />
-
-            <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
-              Social Media Links
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <Facebook className="mr-2 h-5 w-5 text-blue-600" />
-                <Label
-                  htmlFor="socialLinks.facebook"
-                  className="w-24 text-[#5B1A1A]"
-                >
-                  Facebook
-                </Label>
-                <Input
-                  id="socialLinks.facebook"
-                  name="socialLinks.facebook"
-                  value={settings.socialLinks.facebook}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <Instagram className="mr-2 h-5 w-5 text-pink-600" />
-                <Label
-                  htmlFor="socialLinks.instagram"
-                  className="w-24 text-[#5B1A1A]"
-                >
-                  Instagram
-                </Label>
-                <Input
-                  id="socialLinks.instagram"
-                  name="socialLinks.instagram"
-                  value={settings.socialLinks.instagram}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <Twitter className="mr-2 h-5 w-5 text-blue-400" />
-                <Label
-                  htmlFor="socialLinks.twitter"
-                  className="w-24 text-[#5B1A1A]"
-                >
-                  Twitter
-                </Label>
-                <Input
-                  id="socialLinks.twitter"
-                  name="socialLinks.twitter"
-                  value={settings.socialLinks.twitter}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-              </div>
+            <div className="flex justify-end">
+              <Button
+                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
+                onClick={saveSettings}
+              >
+                Save Changes
+              </Button>
             </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
-              onClick={saveSettings}
-            >
-              Save Changes
-            </Button>
-          </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </AdminLayout>

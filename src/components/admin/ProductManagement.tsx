@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import AdminLayout from "./AdminLayout";
@@ -41,7 +41,15 @@ interface Product {
   additionalImages?: string[];
 }
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+}
+
 export default function ProductManagement() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -63,7 +71,110 @@ export default function ProductManagement() {
     additionalImages: [""],
   });
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setCategories(data);
+      } else {
+        // Default categories if none in database
+        const defaultCategories = [
+          {
+            id: 1,
+            name: "Tote",
+            slug: "tote",
+            description: "Spacious bags with two parallel handles",
+          },
+          {
+            id: 2,
+            name: "Crossbody",
+            slug: "crossbody",
+            description: "Bags worn across the body with a long strap",
+          },
+          {
+            id: 3,
+            name: "Bucket",
+            slug: "bucket",
+            description: "Cylindrical shaped bags with a drawstring closure",
+          },
+          {
+            id: 4,
+            name: "Clutch",
+            slug: "clutch",
+            description: "Small handheld bags without handles",
+          },
+          {
+            id: 5,
+            name: "Shoulder",
+            slug: "shoulder",
+            description:
+              "Bags carried on the shoulder with medium-length straps",
+          },
+          {
+            id: 6,
+            name: "Handbag",
+            slug: "handbag",
+            description: "General purpose bags with handles",
+          },
+        ];
+        setCategories(defaultCategories);
+      }
+    } catch (e) {
+      console.error("Error loading categories:", e);
+      // Default categories as fallback
+      const defaultCategories = [
+        {
+          id: 1,
+          name: "Tote",
+          slug: "tote",
+          description: "Spacious bags with two parallel handles",
+        },
+        {
+          id: 2,
+          name: "Crossbody",
+          slug: "crossbody",
+          description: "Bags worn across the body with a long strap",
+        },
+        {
+          id: 3,
+          name: "Bucket",
+          slug: "bucket",
+          description: "Cylindrical shaped bags with a drawstring closure",
+        },
+        {
+          id: 4,
+          name: "Clutch",
+          slug: "clutch",
+          description: "Small handheld bags without handles",
+        },
+        {
+          id: 5,
+          name: "Shoulder",
+          slug: "shoulder",
+          description: "Bags carried on the shoulder with medium-length straps",
+        },
+        {
+          id: 6,
+          name: "Handbag",
+          slug: "handbag",
+          description: "General purpose bags with handles",
+        },
+      ];
+      setCategories(defaultCategories);
+    }
+  }, []);
+
   useEffect(() => {
+    // Load categories
+    loadCategories();
+
+    // Load products
     const loadProducts = async () => {
       try {
         // Try to load products from Supabase
@@ -215,7 +326,7 @@ export default function ProductManagement() {
 
     // Clean up interval on unmount
     return () => clearInterval(interval);
-  }, []);
+  }, [loadCategories]);
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -473,13 +584,22 @@ export default function ProductManagement() {
 
                 <div>
                   <Label htmlFor="category">Category</Label>
-                  <Input
+                  <select
                     id="category"
                     name="category"
                     value={formData.category}
-                    onChange={handleInputChange}
-                    placeholder="Enter category"
-                  />
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -777,13 +897,22 @@ export default function ProductManagement() {
 
               <div>
                 <Label htmlFor="edit-category">Category</Label>
-                <Input
+                <select
                   id="edit-category"
                   name="category"
                   value={formData.category}
-                  onChange={handleInputChange}
-                  placeholder="Enter category"
-                />
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

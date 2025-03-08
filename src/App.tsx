@@ -16,6 +16,7 @@ import AdminPage from "./components/pages/AdminPage";
 import AdminProductsPage from "./components/pages/AdminProductsPage";
 import AdminOrdersPage from "./components/pages/AdminOrdersPage";
 import AdminSettingsPage from "./components/pages/AdminSettingsPage";
+import AdminCategoriesPage from "./components/pages/AdminCategoriesPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -80,6 +81,14 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <AdminOrdersPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/categories"
+          element={
+            <PrivateRoute>
+              <AdminCategoriesPage />
             </PrivateRoute>
           }
         />

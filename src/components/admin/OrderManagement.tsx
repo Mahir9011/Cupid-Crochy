@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Mail } from "lucide-react";
+import { Search, Eye, Mail, Trash2 } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -58,6 +58,7 @@ export default function OrderManagement() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
@@ -176,6 +177,48 @@ export default function OrderManagement() {
   const viewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsViewDialogOpen(true);
+  };
+
+  const openDeleteDialog = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      // Try to delete from Supabase first
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("order_number", selectedOrder.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedOrders = orders.filter(
+        (order) => order.id !== selectedOrder.id,
+      );
+
+      setOrders(updatedOrders);
+
+      // Also update localStorage as backup
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+
+      setIsDeleteDialogOpen(false);
+    } catch (e) {
+      console.error("Error deleting order from Supabase:", e);
+      // Fallback to localStorage only
+      const updatedOrders = orders.filter(
+        (order) => order.id !== selectedOrder.id,
+      );
+
+      setOrders(updatedOrders);
+      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const prepareEmail = (order: Order) => {
@@ -366,6 +409,14 @@ export default function OrderManagement() {
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openDeleteDialog(order)}
+                      title="Delete Order"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </motion.tr>
               ))
@@ -507,6 +558,30 @@ export default function OrderManagement() {
               }}
             >
               <Mail className="mr-2 h-4 w-4" /> Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <p>
+            Are you sure you want to delete order "{selectedOrder?.id}"? This
+            action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteOrder}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
