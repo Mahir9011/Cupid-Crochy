@@ -59,9 +59,8 @@ function AppRoutes() {
         <Route path="/order-tracking" element={<OrderTrackingPage />} />
 
         {/* Admin Routes */}
-        <Route path="/admin/*" element={<Navigate to="/admin/dashboard" />} />
         <Route
-          path="/admin/dashboard"
+          path="/admin"
           element={
             <PrivateRoute>
               <AdminPage />
@@ -84,14 +83,7 @@ function AppRoutes() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/admin/categories"
-          element={
-            <PrivateRoute>
-              <AdminCategoriesPage />
-            </PrivateRoute>
-          }
-        />
+        {/* Categories section removed as requested */}
         <Route
           path="/admin/settings"
           element={

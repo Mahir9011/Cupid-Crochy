@@ -12,6 +12,8 @@ export default function AdminDashboard() {
     totalRevenue: 0,
     pendingOrders: 0,
   });
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -31,6 +33,9 @@ export default function AdminDashboard() {
         const orders = ordersData || [];
         const products = productsData || [];
 
+        setOrders(orders);
+        setProducts(products);
+
         const totalRevenue = orders.reduce(
           (sum: number, order: any) => sum + (parseFloat(order.total) || 0),
           0,
@@ -47,43 +52,23 @@ export default function AdminDashboard() {
         });
       } catch (e) {
         console.error("Error loading dashboard stats:", e);
-        // Fallback to localStorage
-        try {
-          const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-          const products = JSON.parse(localStorage.getItem("products") || "[]");
-
-          const totalRevenue = orders.reduce(
-            (sum: number, order: any) => sum + order.total,
-            0,
-          );
-          const pendingOrders = orders.filter(
-            (order: any) => order.status === "Processing",
-          ).length;
-
-          setStats({
-            totalOrders: orders.length,
-            totalProducts: products.length,
-            totalRevenue,
-            pendingOrders,
-          });
-        } catch (innerError) {
-          console.error("Error loading stats from localStorage:", innerError);
-          // Set default stats on error
-          setStats({
-            totalOrders: 0,
-            totalProducts: 0,
-            totalRevenue: 0,
-            pendingOrders: 0,
-          });
-        }
+        // Set default stats on error
+        setStats({
+          totalOrders: 0,
+          totalProducts: 0,
+          totalRevenue: 0,
+          pendingOrders: 0,
+        });
+        setOrders([]);
+        setProducts([]);
       }
     };
 
     // Load stats immediately
     loadStats();
 
-    // Set up interval to refresh stats every 5 seconds
-    const interval = setInterval(loadStats, 5000);
+    // Set up interval to refresh stats less frequently to avoid lag
+    const interval = setInterval(loadStats, 30000); // 30 seconds instead of 5
 
     // Clean up interval on unmount
     return () => clearInterval(interval);
@@ -150,50 +135,46 @@ export default function AdminDashboard() {
               <CardTitle className="text-[#5B1A1A]">Recent Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              {stats.totalOrders === 0 ? (
+              {orders.length === 0 ? (
                 <p className="text-center py-4 text-[#5B1A1A]/70">
                   No orders yet
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {JSON.parse(localStorage.getItem("orders") || "[]")
-                    .slice(0, 5)
-                    .map((order: any) => (
-                      <div
-                        key={order.id}
-                        className="flex justify-between items-center border-b pb-2"
-                      >
-                        <div>
-                          <p className="font-medium text-[#5B1A1A]">
-                            {order.id}
-                          </p>
-                          <p className="text-sm text-[#5B1A1A]/70">
-                            {order.name}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-[#5B1A1A]">
-                            ৳
-                            {typeof order.total === "number"
-                              ? order.total.toFixed(2)
-                              : order.total}
-                          </p>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              order.status === "Processing"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : order.status === "Shipped"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : order.status === "Delivered"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {order.status}
-                          </span>
-                        </div>
+                  {orders.slice(0, 5).map((order: any) => (
+                    <div
+                      key={order.id}
+                      className="flex justify-between items-center border-b pb-2"
+                    >
+                      <div>
+                        <p className="font-medium text-[#5B1A1A]">{order.id}</p>
+                        <p className="text-sm text-[#5B1A1A]/70">
+                          {order.name}
+                        </p>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <p className="font-medium text-[#5B1A1A]">
+                          ৳
+                          {typeof order.total === "number"
+                            ? order.total.toFixed(2)
+                            : order.total}
+                        </p>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            order.status === "Processing"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : order.status === "Shipped"
+                                ? "bg-blue-100 text-blue-800"
+                                : order.status === "Delivered"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -210,39 +191,37 @@ export default function AdminDashboard() {
               <CardTitle className="text-[#5B1A1A]">Recent Products</CardTitle>
             </CardHeader>
             <CardContent>
-              {stats.totalProducts === 0 ? (
+              {products.length === 0 ? (
                 <p className="text-center py-4 text-[#5B1A1A]/70">
                   No products yet
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {JSON.parse(localStorage.getItem("products") || "[]")
-                    .slice(0, 5)
-                    .map((product: any) => (
-                      <div
-                        key={product.id}
-                        className="flex justify-between items-center border-b pb-2"
-                      >
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded overflow-hidden mr-3">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <p className="font-medium text-[#5B1A1A]">
-                            {product.name}
-                          </p>
+                  {products.slice(0, 5).map((product: any) => (
+                    <div
+                      key={product.id}
+                      className="flex justify-between items-center border-b pb-2"
+                    >
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded overflow-hidden mr-3">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
                         </div>
                         <p className="font-medium text-[#5B1A1A]">
-                          ৳
-                          {typeof product.price === "number"
-                            ? product.price.toFixed(2)
-                            : "0.00"}
+                          {product.name}
                         </p>
                       </div>
-                    ))}
+                      <p className="font-medium text-[#5B1A1A]">
+                        ৳
+                        {typeof product.price === "number"
+                          ? product.price.toFixed(2)
+                          : "0.00"}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

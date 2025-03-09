@@ -28,7 +28,7 @@ interface Order {
 
 export default function OrderTrackingPage() {
   const [orderId, setOrderId] = useState(
-    localStorage.getItem("latestOrderId") || "",
+    sessionStorage.getItem("latestOrderId") || "",
   );
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");

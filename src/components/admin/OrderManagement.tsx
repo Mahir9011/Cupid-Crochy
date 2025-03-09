@@ -55,6 +55,8 @@ interface Order {
 export default function OrderManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -94,43 +96,64 @@ export default function OrderManagement() {
 
           setOrders(ordersWithItems);
         } else {
-          // If no orders in Supabase, try localStorage
-          const storedOrders = localStorage.getItem("orders");
-          if (storedOrders) {
-            setOrders(JSON.parse(storedOrders));
-          }
+          // If no orders in Supabase, set empty array
+          setOrders([]);
         }
       } catch (e) {
         console.error("Error loading orders:", e);
-        // Try localStorage as fallback
-        try {
-          const storedOrders = localStorage.getItem("orders");
-          if (storedOrders) {
-            setOrders(JSON.parse(storedOrders));
-          }
-        } catch (innerError) {
-          console.error("Error loading orders from localStorage:", innerError);
-          setOrders([]);
-        }
+        // Set empty array as fallback
+        setOrders([]);
       }
     };
 
     // Load orders immediately
     loadOrders();
 
-    // Set up interval to refresh orders every 5 seconds
-    const interval = setInterval(loadOrders, 5000);
+    // Set up interval to refresh orders less frequently to avoid lag
+    const interval = setInterval(loadOrders, 30000); // 30 seconds instead of 5
 
     // Clean up interval on unmount
     return () => clearInterval(interval);
   }, []);
 
-  const filteredOrders = orders.filter(
-    (order) =>
+  const filteredOrders = orders.filter((order) => {
+    // Apply search filter
+    const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      order.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Apply status filter
+    let matchesStatus = true;
+    if (statusFilter !== "all") {
+      matchesStatus = order.status.toLowerCase() === statusFilter.toLowerCase();
+    }
+
+    // Apply date filter
+    let matchesDate = true;
+    if (dateFilter !== "all") {
+      const orderDate = new Date(order.date);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const lastWeek = new Date(today);
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      const lastMonth = new Date(today);
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      if (dateFilter === "today") {
+        matchesDate = orderDate.toDateString() === today.toDateString();
+      } else if (dateFilter === "yesterday") {
+        matchesDate = orderDate.toDateString() === yesterday.toDateString();
+      } else if (dateFilter === "lastWeek") {
+        matchesDate = orderDate >= lastWeek;
+      } else if (dateFilter === "lastMonth") {
+        matchesDate = orderDate >= lastMonth;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   const handleStatusChange = async (
     orderId: string,
@@ -160,17 +183,15 @@ export default function OrderManagement() {
 
       setOrders(updatedOrders);
 
-      // Also update localStorage as backup
-      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      // Update local state only
     } catch (e) {
       console.error("Error updating order status in Supabase:", e);
-      // Fallback to localStorage only
+      // Fallback to local state only
       const updatedOrders = orders.map((order) =>
         order.id === orderId ? { ...order, status: newStatus } : order,
       );
 
       setOrders(updatedOrders);
-      localStorage.setItem("orders", JSON.stringify(updatedOrders));
     }
   };
 
@@ -203,19 +224,17 @@ export default function OrderManagement() {
 
       setOrders(updatedOrders);
 
-      // Also update localStorage as backup
-      localStorage.setItem("orders", JSON.stringify(updatedOrders));
+      // Update local state only
 
       setIsDeleteDialogOpen(false);
     } catch (e) {
       console.error("Error deleting order from Supabase:", e);
-      // Fallback to localStorage only
+      // Fallback to local state only
       const updatedOrders = orders.filter(
         (order) => order.id !== selectedOrder.id,
       );
 
       setOrders(updatedOrders);
-      localStorage.setItem("orders", JSON.stringify(updatedOrders));
 
       setIsDeleteDialogOpen(false);
     }
@@ -302,18 +321,44 @@ export default function OrderManagement() {
 
   return (
     <AdminLayout title="Order Management" activeTab="orders">
-      <div className="flex justify-between items-center mb-6">
-        <div className="relative w-64">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <Input
-            placeholder="Search orders..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative w-64">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <Input
+              placeholder="Search orders..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <select
+            className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Statuses</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <select
+            className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="lastWeek">Last 7 Days</option>
+            <option value="lastMonth">Last 30 Days</option>
+          </select>
         </div>
       </div>
 

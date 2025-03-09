@@ -129,20 +129,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-medium text-[#5B1A1A]">Email</h3>
-                      <p className="text-[#5B1A1A]/70">
-                        {(() => {
-                          try {
-                            const settings = JSON.parse(
-                              localStorage.getItem("siteSettings") || "{}",
-                            );
-                            return (
-                              settings.companyEmail || "hello@cupidcrochy.com"
-                            );
-                          } catch (e) {
-                            return "hello@cupidcrochy.com";
-                          }
-                        })()}
-                      </p>
+                      <p className="text-[#5B1A1A]/70">hello@cupidcrochy.com</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -151,18 +138,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-medium text-[#5B1A1A]">Phone</h3>
-                      <p className="text-[#5B1A1A]/70">
-                        {(() => {
-                          try {
-                            const settings = JSON.parse(
-                              localStorage.getItem("siteSettings") || "{}",
-                            );
-                            return settings.companyPhone || "+880 1234 567890";
-                          } catch (e) {
-                            return "+880 1234 567890";
-                          }
-                        })()}
-                      </p>
+                      <p className="text-[#5B1A1A]/70">+880 1234 567890</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -172,19 +148,7 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-medium text-[#5B1A1A]">Location</h3>
                       <p className="text-[#5B1A1A]/70">
-                        {(() => {
-                          try {
-                            const settings = JSON.parse(
-                              localStorage.getItem("siteSettings") || "{}",
-                            );
-                            return (
-                              settings.companyAddress ||
-                              "123 Craft Street, Dhaka, Bangladesh"
-                            );
-                          } catch (e) {
-                            return "123 Craft Street, Dhaka, Bangladesh";
-                          }
-                        })()}
+                        123 Craft Street, Dhaka, Bangladesh
                       </p>
                     </div>
                   </div>
@@ -202,19 +166,7 @@ export default function ContactPage() {
                 </p>
                 <div className="flex space-x-4">
                   <a
-                    href={(() => {
-                      try {
-                        const settings = JSON.parse(
-                          localStorage.getItem("siteSettings") || "{}",
-                        );
-                        return (
-                          settings.socialLinks?.facebook ||
-                          "https://facebook.com"
-                        );
-                      } catch (e) {
-                        return "https://facebook.com";
-                      }
-                    })()}
+                    href="https://facebook.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-[#F5DDEB] hover:bg-[#5B1A1A] text-[#5B1A1A] hover:text-white p-4 rounded-full transition-colors duration-300"
@@ -222,19 +174,7 @@ export default function ContactPage() {
                     <Facebook className="h-6 w-6" />
                   </a>
                   <a
-                    href={(() => {
-                      try {
-                        const settings = JSON.parse(
-                          localStorage.getItem("siteSettings") || "{}",
-                        );
-                        return (
-                          settings.socialLinks?.instagram ||
-                          "https://instagram.com"
-                        );
-                      } catch (e) {
-                        return "https://instagram.com";
-                      }
-                    })()}
+                    href="https://instagram.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-[#F5DDEB] hover:bg-[#5B1A1A] text-[#5B1A1A] hover:text-white p-4 rounded-full transition-colors duration-300"
@@ -242,18 +182,7 @@ export default function ContactPage() {
                     <Instagram className="h-6 w-6" />
                   </a>
                   <a
-                    href={(() => {
-                      try {
-                        const settings = JSON.parse(
-                          localStorage.getItem("siteSettings") || "{}",
-                        );
-                        return (
-                          settings.socialLinks?.twitter || "https://twitter.com"
-                        );
-                      } catch (e) {
-                        return "https://twitter.com";
-                      }
-                    })()}
+                    href="https://twitter.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-[#F5DDEB] hover:bg-[#5B1A1A] text-[#5B1A1A] hover:text-white p-4 rounded-full transition-colors duration-300"

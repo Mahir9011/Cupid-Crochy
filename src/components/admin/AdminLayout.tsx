@@ -18,7 +18,7 @@ import { useAuth } from "../../../supabase/auth";
 interface AdminLayoutProps {
   children: ReactNode;
   title: string;
-  activeTab: "dashboard" | "products" | "orders" | "categories" | "settings";
+  activeTab: "dashboard" | "products" | "orders" | "settings";
 }
 
 export default function AdminLayout({
@@ -49,12 +49,7 @@ export default function AdminLayout({
       path: "/admin/orders",
       id: "orders",
     },
-    {
-      icon: <Tag className="h-5 w-5" />,
-      label: "Categories",
-      path: "/admin/categories",
-      id: "categories",
-    },
+    // Categories section removed as requested
     {
       icon: <Settings className="h-5 w-5" />,
       label: "Settings",

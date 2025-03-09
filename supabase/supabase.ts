@@ -1,14 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import { Database } from "../src/types/supabase";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 // Create a singleton instance to avoid multiple clients
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
-
-export const supabase = (() => {
-  if (!supabaseInstance && supabaseUrl && supabaseAnonKey) {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  }
-  return supabaseInstance!;
-})();
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);

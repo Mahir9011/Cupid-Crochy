@@ -25,6 +25,7 @@ interface Product {
   category: string;
   tags: string[];
   isNew?: boolean;
+  isSoldOut?: boolean;
   description?: string;
   features?: string[];
   careInstructions?: string[];
@@ -144,6 +145,14 @@ export default function ProductDetail() {
                   >
                     <Maximize2 className="h-5 w-5 text-[#5B1A1A]" />
                   </button>
+
+                  {product.isSoldOut && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Badge className="bg-black/70 text-white px-6 py-3 text-xl font-bold">
+                        Sold Out
+                      </Badge>
+                    </div>
+                  )}
                 </div>
 
                 {product.additionalImages &&
@@ -197,6 +206,7 @@ export default function ProductDetail() {
                       <button
                         className="px-3 py-2 bg-gray-100 hover:bg-gray-200 transition-colors"
                         onClick={handleDecrement}
+                        disabled={product.isSoldOut}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -204,6 +214,7 @@ export default function ProductDetail() {
                       <button
                         className="px-3 py-2 bg-gray-100 hover:bg-gray-200 transition-colors"
                         onClick={handleIncrement}
+                        disabled={product.isSoldOut}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -226,9 +237,10 @@ export default function ProductDetail() {
                         });
                         openCart();
                       }}
+                      disabled={product.isSoldOut}
                     >
                       <ShoppingBag className="mr-2 h-5 w-5" />
-                      Add to Cart
+                      {product.isSoldOut ? "Sold Out" : "Add to Cart"}
                     </Button>
                   </div>
 
@@ -244,15 +256,16 @@ export default function ProductDetail() {
                   </div>
 
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {product.tags.slice(0, 2).map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-xs bg-[#F5DDEB]/50 text-[#5B1A1A] px-2 py-0.5 rounded-full capitalize"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {product.tags.length > 2 && (
+                    {product.tags &&
+                      product.tags.slice(0, 2).map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-xs bg-[#F5DDEB]/50 text-[#5B1A1A] px-2 py-0.5 rounded-full capitalize"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    {product.tags && product.tags.length > 2 && (
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                         +{product.tags.length - 2}
                       </span>

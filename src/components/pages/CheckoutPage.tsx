@@ -61,7 +61,7 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
 
       // Store the latest order ID for tracking
-      localStorage.setItem("latestOrderId", orderId);
+      sessionStorage.setItem("latestOrderId", orderId);
     }, 1500);
   };
 
@@ -406,7 +406,7 @@ export default function CheckoutPage() {
                     Your Order ID
                   </p>
                   <p className="text-lg font-semibold text-[#5B1A1A]">
-                    {localStorage.getItem("latestOrderId")}
+                    {sessionStorage.getItem("latestOrderId")}
                   </p>
                   <p className="text-xs text-[#5B1A1A]/70 mt-2">
                     Please save this ID for tracking your order

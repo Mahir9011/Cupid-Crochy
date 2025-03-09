@@ -61,40 +61,45 @@ export default function SettingsPage() {
         if (data && data.value) {
           setSettings(data.value);
         } else {
-          // If no settings in Supabase, try localStorage
-          const storedSettings = localStorage.getItem("siteSettings");
-          if (storedSettings) {
-            setSettings(JSON.parse(storedSettings));
-          } else {
-            // If no settings in localStorage, use default settings
-            localStorage.setItem(
-              "siteSettings",
-              JSON.stringify(defaultSettings),
+          // If no settings in Supabase, use default settings
+          try {
+            // Try to save default settings to Supabase
+            await supabase.from("settings").upsert(
+              {
+                key: "site_settings",
+                value: defaultSettings,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "key" },
             );
-            setSettings(defaultSettings);
+          } catch (saveError) {
+            console.error(
+              "Error saving default settings to Supabase:",
+              saveError,
+            );
           }
+          setSettings(defaultSettings);
         }
       } catch (e) {
         console.error("Error loading settings:", e);
-        // Try localStorage as fallback
+        // Use default settings as fallback
+        setSettings(defaultSettings);
+
+        // Try to save default settings to Supabase
         try {
-          const storedSettings = localStorage.getItem("siteSettings");
-          if (storedSettings) {
-            setSettings(JSON.parse(storedSettings));
-          } else {
-            // If no settings in localStorage, use default settings
-            localStorage.setItem(
-              "siteSettings",
-              JSON.stringify(defaultSettings),
-            );
-            setSettings(defaultSettings);
-          }
-        } catch (innerError) {
-          console.error(
-            "Failed to load settings from localStorage",
-            innerError,
+          await supabase.from("settings").upsert(
+            {
+              key: "site_settings",
+              value: defaultSettings,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "key" },
           );
-          setSettings(defaultSettings);
+        } catch (saveError) {
+          console.error(
+            "Error saving default settings to Supabase:",
+            saveError,
+          );
         }
       }
     };
@@ -102,8 +107,8 @@ export default function SettingsPage() {
     // Load settings immediately
     loadSettings();
 
-    // Set up interval to refresh settings every 5 seconds
-    const interval = setInterval(loadSettings, 5000);
+    // Set up interval to refresh settings less frequently to avoid lag
+    const interval = setInterval(loadSettings, 30000); // 30 seconds instead of 5
 
     // Clean up interval on unmount
     return () => clearInterval(interval);
@@ -143,8 +148,7 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
-      // Also save to localStorage as backup
-      localStorage.setItem("siteSettings", JSON.stringify(settings));
+      // No need for localStorage backup
 
       toast({
         title: "Settings saved",
@@ -152,8 +156,7 @@ export default function SettingsPage() {
       });
     } catch (e) {
       console.error("Error saving settings to Supabase:", e);
-      // Fallback to localStorage only
-      localStorage.setItem("siteSettings", JSON.stringify(settings));
+      // Just show the toast, we'll try again next time
 
       toast({
         title: "Settings saved locally",
