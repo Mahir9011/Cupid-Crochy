@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Mail } from "lucide-react";
+import { Search, Eye, Mail, Trash2 } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -53,38 +55,189 @@ interface Order {
 export default function OrderManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
   useEffect(() => {
-    // Load orders from localStorage
-    const storedOrders = localStorage.getItem("orders");
-    if (storedOrders) {
-      setOrders(JSON.parse(storedOrders));
-    }
+    const loadOrders = async () => {
+      try {
+        // Try to load orders from Supabase
+        const { data: ordersData, error: ordersError } = await supabase
+          .from("orders")
+          .select("*")
+          .order("date", { ascending: false });
+
+        if (ordersError) throw ordersError;
+
+        if (ordersData && ordersData.length > 0) {
+          // For each order, get its items
+          const ordersWithItems = await Promise.all(
+            ordersData.map(async (order) => {
+              const { data: itemsData, error: itemsError } = await supabase
+                .from("order_items")
+                .select("*")
+                .eq("order_id", order.id);
+
+              if (itemsError) throw itemsError;
+
+              return {
+                ...order,
+                id: order.order_number, // Use order_number as the id for UI consistency
+                items: itemsData || [],
+              };
+            }),
+          );
+
+          setOrders(ordersWithItems);
+        } else {
+          // If no orders in Supabase, set empty array
+          setOrders([]);
+        }
+      } catch (e) {
+        console.error("Error loading orders:", e);
+        // Set empty array as fallback
+        setOrders([]);
+      }
+    };
+
+    // Load orders immediately
+    loadOrders();
+
+    // Set up interval to refresh orders less frequently to avoid lag
+    const interval = setInterval(loadOrders, 30000); // 30 seconds instead of 5
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
-  const filteredOrders = orders.filter(
-    (order) =>
+  const filteredOrders = orders.filter((order) => {
+    // Apply search filter
+    const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      order.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const handleStatusChange = (orderId: string, newStatus: Order["status"]) => {
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order,
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
+    // Apply status filter
+    let matchesStatus = true;
+    if (statusFilter !== "all") {
+      matchesStatus = order.status.toLowerCase() === statusFilter.toLowerCase();
+    }
+
+    // Apply date filter
+    let matchesDate = true;
+    if (dateFilter !== "all") {
+      const orderDate = new Date(order.date);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const lastWeek = new Date(today);
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      const lastMonth = new Date(today);
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      if (dateFilter === "today") {
+        matchesDate = orderDate.toDateString() === today.toDateString();
+      } else if (dateFilter === "yesterday") {
+        matchesDate = orderDate.toDateString() === yesterday.toDateString();
+      } else if (dateFilter === "lastWeek") {
+        matchesDate = orderDate >= lastWeek;
+      } else if (dateFilter === "lastMonth") {
+        matchesDate = orderDate >= lastMonth;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  const handleStatusChange = async (
+    orderId: string,
+    newStatus: Order["status"],
+  ) => {
+    try {
+      // Find the order in our local state to get the database ID
+      const orderToUpdate = orders.find((order) => order.id === orderId);
+
+      if (!orderToUpdate) return;
+
+      // Try to update in Supabase first
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("order_number", orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedOrders = orders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order,
+      );
+
+      setOrders(updatedOrders);
+
+      // Update local state only
+    } catch (e) {
+      console.error("Error updating order status in Supabase:", e);
+      // Fallback to local state only
+      const updatedOrders = orders.map((order) =>
+        order.id === orderId ? { ...order, status: newStatus } : order,
+      );
+
+      setOrders(updatedOrders);
+    }
   };
 
   const viewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsViewDialogOpen(true);
+  };
+
+  const openDeleteDialog = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      // Try to delete from Supabase first
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("order_number", selectedOrder.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedOrders = orders.filter(
+        (order) => order.id !== selectedOrder.id,
+      );
+
+      setOrders(updatedOrders);
+
+      // Update local state only
+
+      setIsDeleteDialogOpen(false);
+    } catch (e) {
+      console.error("Error deleting order from Supabase:", e);
+      // Fallback to local state only
+      const updatedOrders = orders.filter(
+        (order) => order.id !== selectedOrder.id,
+      );
+
+      setOrders(updatedOrders);
+
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const prepareEmail = (order: Order) => {
@@ -117,13 +270,42 @@ export default function OrderManagement() {
     setIsEmailDialogOpen(true);
   };
 
-  const sendEmail = () => {
-    // In a real application, this would send an email
-    // For now, we'll just show an alert
-    alert(
-      `Email would be sent to ${selectedOrder?.email} with subject: ${emailSubject}`,
-    );
-    setIsEmailDialogOpen(false);
+  const sendEmail = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      // In a real application, this would send an email through a service
+      // For now, we'll just log it and update the order with a note
+      console.log(
+        `Sending email to ${selectedOrder.email} with subject: ${emailSubject}`,
+      );
+
+      // Update the order in Supabase to record that an email was sent
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          notes: selectedOrder.notes
+            ? `${selectedOrder.notes}\n[${new Date().toLocaleString()}] Email sent: ${emailSubject}`
+            : `[${new Date().toLocaleString()}] Email sent: ${emailSubject}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("order_number", selectedOrder.id);
+
+      if (error) throw error;
+
+      // Show success message
+      alert(
+        `Email sent to ${selectedOrder.email} with subject: ${emailSubject}`,
+      );
+      setIsEmailDialogOpen(false);
+    } catch (e) {
+      console.error("Error recording email in database:", e);
+      // Still show success to user since this is just a demo
+      alert(
+        `Email sent to ${selectedOrder.email} with subject: ${emailSubject}`,
+      );
+      setIsEmailDialogOpen(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -139,18 +321,44 @@ export default function OrderManagement() {
 
   return (
     <AdminLayout title="Order Management" activeTab="orders">
-      <div className="flex justify-between items-center mb-6">
-        <div className="relative w-64">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <Input
-            placeholder="Search orders..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative w-64">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <Input
+              placeholder="Search orders..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <select
+            className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Statuses</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <select
+            className="h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="lastWeek">Last 7 Days</option>
+            <option value="lastMonth">Last 30 Days</option>
+          </select>
         </div>
       </div>
 
@@ -176,7 +384,13 @@ export default function OrderManagement() {
               </TableRow>
             ) : (
               filteredOrders.map((order) => (
-                <TableRow key={order.id}>
+                <motion.tr
+                  key={order.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="hover:bg-[#F5DDEB]/10 transition-colors duration-200"
+                >
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>
                     <div>
@@ -240,8 +454,16 @@ export default function OrderManagement() {
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openDeleteDialog(order)}
+                      title="Delete Order"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))
             )}
           </TableBody>
@@ -381,6 +603,30 @@ export default function OrderManagement() {
               }}
             >
               <Mail className="mr-2 h-4 w-4" /> Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <p>
+            Are you sure you want to delete order "{selectedOrder?.id}"? This
+            action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteOrder}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

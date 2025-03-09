@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createOrder } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import Layout from "../layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export default function CheckoutPage() {
   const shipping = 50;
   const total = subtotal + shipping;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -36,7 +37,7 @@ export default function CheckoutPage() {
     setTimeout(() => {
       const orderId = generateOrderId();
 
-      // Save order details to localStorage for tracking
+      // Create order details
       const orderDetails = {
         id: orderId,
         email,
@@ -49,12 +50,8 @@ export default function CheckoutPage() {
         phone,
       };
 
-      // Get existing orders or initialize empty array
-      const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-      localStorage.setItem(
-        "orders",
-        JSON.stringify([...existingOrders, orderDetails]),
-      );
+      // Save to Supabase (with localStorage fallback)
+      createOrder(orderDetails);
 
       // Clear cart
       clearCart();
@@ -64,7 +61,7 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
 
       // Store the latest order ID for tracking
-      localStorage.setItem("latestOrderId", orderId);
+      sessionStorage.setItem("latestOrderId", orderId);
     }, 1500);
   };
 
@@ -409,7 +406,7 @@ export default function CheckoutPage() {
                     Your Order ID
                   </p>
                   <p className="text-lg font-semibold text-[#5B1A1A]">
-                    {localStorage.getItem("latestOrderId")}
+                    {sessionStorage.getItem("latestOrderId")}
                   </p>
                   <p className="text-xs text-[#5B1A1A]/70 mt-2">
                     Please save this ID for tracking your order

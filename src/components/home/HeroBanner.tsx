@@ -1,26 +1,53 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 
 export default function HeroBanner() {
-  // Get settings from localStorage or use defaults
-  const settings = JSON.parse(
-    localStorage.getItem("siteSettings") ||
-      JSON.stringify({
-        heroImage:
-          "https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=1200&q=80",
-        heroTitle: "Handcrafted Crochet Bags",
-        heroSubtitle: "Made with love, carried with pride",
-      }),
-  );
+  // Default settings
+  const defaultSettings = {
+    heroImage:
+      "https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=1200&q=80",
+    heroTitle: "Handcrafted Crochet Bags",
+    heroSubtitle: "Made with love, carried with pride",
+  };
+
+  const [settings, setSettings] = useState(defaultSettings);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "site_settings")
+          .single();
+
+        if (error) throw error;
+
+        if (data && data.value) {
+          setSettings({
+            heroImage: data.value.heroImage || defaultSettings.heroImage,
+            heroTitle: data.value.heroTitle || defaultSettings.heroTitle,
+            heroSubtitle:
+              data.value.heroSubtitle || defaultSettings.heroSubtitle,
+          });
+        }
+      } catch (e) {
+        console.error("Error loading settings:", e);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   return (
-    <div className="relative w-full h-[80vh] min-h-[600px] bg-[#F5DDEB]/80 overflow-hidden rounded-b-3xl">
-      <div
-        className={`absolute inset-0 bg-[url('${settings.heroImage}')] bg-cover bg-center opacity-20`}
-      ></div>
-
+    <div
+      className="relative w-full h-[80vh] min-h-[600px] overflow-hidden rounded-b-3xl"
+      style={{ backgroundColor: "#F5DDEB" }}
+    >
       <div className="container relative z-10 mx-auto h-full flex flex-col justify-center items-start px-4 md:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -65,7 +92,7 @@ export default function HeroBanner() {
         transition={{ delay: 0.2, duration: 0.8 }}
       >
         <img
-          src="https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=800&q=80"
+          src={settings.heroImage}
           alt="Featured crochet bag"
           className="w-full h-full object-cover object-center rounded-tl-3xl"
         />

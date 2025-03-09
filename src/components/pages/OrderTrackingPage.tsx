@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getOrderByNumber } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import Layout from "../layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -27,27 +28,34 @@ interface Order {
 
 export default function OrderTrackingPage() {
   const [orderId, setOrderId] = useState(
-    localStorage.getItem("latestOrderId") || "",
+    sessionStorage.getItem("latestOrderId") || "",
   );
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!orderId) {
       setError("Please enter an order ID");
       return;
     }
 
-    // Get orders from localStorage
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const foundOrder = orders.find((o: Order) => o.id === orderId);
+    try {
+      // Get order from Supabase (with localStorage fallback)
+      const foundOrder = await getOrderByNumber(orderId);
 
-    if (foundOrder) {
-      setOrder(foundOrder);
-      setError("");
-    } else {
+      if (foundOrder) {
+        setOrder(foundOrder);
+        setError("");
+      } else {
+        setOrder(null);
+        setError("Order not found. Please check the order ID and try again.");
+      }
+    } catch (e) {
+      console.error("Error finding order:", e);
       setOrder(null);
-      setError("Order not found. Please check the order ID and try again.");
+      setError(
+        "An error occurred while searching for your order. Please try again.",
+      );
     }
   };
 

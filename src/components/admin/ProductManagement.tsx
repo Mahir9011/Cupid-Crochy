@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,140 +35,367 @@ interface Product {
   category: string;
   tags: string[];
   isNew?: boolean;
+  isSoldOut?: boolean;
   description?: string;
   features?: string[];
   careInstructions?: string[];
   additionalImages?: string[];
 }
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+}
+
 export default function ProductManagement() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState<Partial<Product>>({
+  const [formData, setFormData] = useState<
+    Partial<Product> & { tagsInput?: string; newCategory?: string }
+  >({
     name: "",
     price: 0,
     image: "",
     category: "",
     tags: [],
+    tagsInput: "",
+    newCategory: "",
     isNew: false,
+    isSoldOut: false,
     description: "",
-    features: [""],
-    careInstructions: [""],
-    additionalImages: [""],
+    features: [],
+    careInstructions: [],
+    additionalImages: [],
   });
 
-  useEffect(() => {
-    // Load products from localStorage
-    const storedProducts = localStorage.getItem("products");
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    } else {
-      // If no products in localStorage, use default products
-      const defaultProducts = [
+  const loadCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setCategories(data);
+      } else {
+        // Default categories if none in database
+        const defaultCategories = [
+          {
+            id: 1,
+            name: "Tote",
+            slug: "tote",
+            description: "Spacious bags with two parallel handles",
+          },
+          {
+            id: 2,
+            name: "Crossbody",
+            slug: "crossbody",
+            description: "Bags worn across the body with a long strap",
+          },
+          {
+            id: 3,
+            name: "Bucket",
+            slug: "bucket",
+            description: "Cylindrical shaped bags with a drawstring closure",
+          },
+          {
+            id: 4,
+            name: "Clutch",
+            slug: "clutch",
+            description: "Small handheld bags without handles",
+          },
+          {
+            id: 5,
+            name: "Shoulder",
+            slug: "shoulder",
+            description:
+              "Bags carried on the shoulder with medium-length straps",
+          },
+          {
+            id: 6,
+            name: "Handbag",
+            slug: "handbag",
+            description: "General purpose bags with handles",
+          },
+        ];
+        setCategories(defaultCategories);
+      }
+    } catch (e) {
+      console.error("Error loading categories:", e);
+      // Default categories as fallback
+      const defaultCategories = [
         {
-          id: "1",
-          name: "Daisy Tote Bag",
-          price: 89.99,
-          image:
-            "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-          category: "Tote",
-          tags: ["summer", "floral", "large"],
-          isNew: true,
-          description:
-            "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use. Handcrafted with care using premium cotton yarn, this bag features a beautiful daisy pattern that adds a touch of elegance to any outfit. The reinforced handles ensure durability, while the spacious interior provides ample room for all your essentials.",
-          features: [
-            "Handmade with premium cotton yarn",
-            "Spacious interior with inner pocket",
-            "Reinforced handles for durability",
-            'Dimensions: 16" x 14" x 5"',
-            "Fully lined with cotton fabric",
-          ],
-          careInstructions: [
-            "Hand wash in cold water",
-            "Lay flat to dry",
-            "Do not bleach",
-            "Reshape while damp",
-          ],
-          additionalImages: [
-            "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-            "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          ],
+          id: 1,
+          name: "Tote",
+          slug: "tote",
+          description: "Spacious bags with two parallel handles",
         },
         {
-          id: "2",
-          name: "Summer Crossbody",
-          price: 64.99,
-          image:
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          category: "Crossbody",
-          tags: ["summer", "small", "casual"],
-          description:
-            "The Summer Crossbody bag is perfect for those days when you want to travel light. This compact yet stylish bag features an adjustable strap and secure closure to keep your essentials safe. The vibrant summer-inspired design adds a pop of color to any outfit.",
-          features: [
-            "Handcrafted with lightweight cotton yarn",
-            "Adjustable crossbody strap",
-            "Secure zipper closure",
-            'Dimensions: 8" x 6" x 2"',
-            "Inner lining with small pocket",
-          ],
-          careInstructions: [
-            "Spot clean with mild detergent",
-            "Air dry only",
-            "Do not iron",
-            "Store in dust bag when not in use",
-          ],
-          additionalImages: [
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-            "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
-            "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
-          ],
+          id: 2,
+          name: "Crossbody",
+          slug: "crossbody",
+          description: "Bags worn across the body with a long strap",
         },
         {
-          id: "3",
-          name: "Boho Bucket Bag",
-          price: 79.99,
-          image:
-            "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          category: "Bucket",
-          tags: ["boho", "medium", "pattern"],
-          isNew: true,
-          description:
-            "Embrace bohemian style with our Boho Bucket Bag. This trendy accessory features intricate pattern work and a drawstring closure for a secure yet easy-access design. Perfect for festivals, beach days, or adding a boho touch to your everyday look.",
-          features: [
-            "Handcrafted with eco-friendly cotton yarn",
-            "Drawstring closure with wooden beads",
-            "Colorful tassel details",
-            'Dimensions: 10" x 12" (diameter x height)',
-            "Adjustable shoulder strap",
-          ],
-          careInstructions: [
-            "Hand wash in cold water",
-            "Reshape while damp",
-            "Air dry away from direct sunlight",
-            "Store stuffed to maintain shape",
-          ],
-          additionalImages: [
-            "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-            "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-            "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          ],
+          id: 3,
+          name: "Bucket",
+          slug: "bucket",
+          description: "Cylindrical shaped bags with a drawstring closure",
+        },
+        {
+          id: 4,
+          name: "Clutch",
+          slug: "clutch",
+          description: "Small handheld bags without handles",
+        },
+        {
+          id: 5,
+          name: "Shoulder",
+          slug: "shoulder",
+          description: "Bags carried on the shoulder with medium-length straps",
+        },
+        {
+          id: 6,
+          name: "Handbag",
+          slug: "handbag",
+          description: "General purpose bags with handles",
         },
       ];
-      setProducts(defaultProducts);
-      localStorage.setItem("products", JSON.stringify(defaultProducts));
+      setCategories(defaultCategories);
     }
   }, []);
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  useEffect(() => {
+    // Load categories
+    loadCategories();
+
+    // Load products
+    const loadProducts = async () => {
+      try {
+        // Try to load products from Supabase
+        const { data, error } = await supabase
+          .from("products")
+          .select()
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setProducts(data);
+        } else {
+          // If no products in Supabase, use default products
+          const defaultProducts = [
+            {
+              id: "1",
+              name: "Daisy Tote Bag",
+              price: 89.99,
+              image:
+                "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+              category: "Tote",
+              tags: ["summer", "floral", "large"],
+              isNew: true,
+              description:
+                "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use. Handcrafted with care using premium cotton yarn, this bag features a beautiful daisy pattern that adds a touch of elegance to any outfit. The reinforced handles ensure durability, while the spacious interior provides ample room for all your essentials.",
+              features: [
+                "Handmade with premium cotton yarn",
+                "Spacious interior with inner pocket",
+                "Reinforced handles for durability",
+                'Dimensions: 16" x 14" x 5"',
+                "Fully lined with cotton fabric",
+              ],
+              careInstructions: [
+                "Hand wash in cold water",
+                "Lay flat to dry",
+                "Do not bleach",
+                "Reshape while damp",
+              ],
+              additionalImages: [
+                "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+                "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+                "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+              ],
+            },
+            {
+              id: "2",
+              name: "Summer Crossbody",
+              price: 64.99,
+              image:
+                "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+              category: "Crossbody",
+              tags: ["summer", "small", "casual"],
+              description:
+                "The Summer Crossbody bag is perfect for those days when you want to travel light. This compact yet stylish bag features an adjustable strap and secure closure to keep your essentials safe. The vibrant summer-inspired design adds a pop of color to any outfit.",
+              features: [
+                "Handcrafted with lightweight cotton yarn",
+                "Adjustable crossbody strap",
+                "Secure zipper closure",
+                'Dimensions: 8" x 6" x 2"',
+                "Inner lining with small pocket",
+              ],
+              careInstructions: [
+                "Spot clean with mild detergent",
+                "Air dry only",
+                "Do not iron",
+                "Store in dust bag when not in use",
+              ],
+              additionalImages: [
+                "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+                "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
+                "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
+              ],
+            },
+            {
+              id: "3",
+              name: "Boho Bucket Bag",
+              price: 79.99,
+              image:
+                "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+              category: "Bucket",
+              tags: ["boho", "medium", "pattern"],
+              isNew: true,
+              description:
+                "Embrace bohemian style with our Boho Bucket Bag. This trendy accessory features intricate pattern work and a drawstring closure for a secure yet easy-access design. Perfect for festivals, beach days, or adding a boho touch to your everyday look.",
+              features: [
+                "Handcrafted with eco-friendly cotton yarn",
+                "Drawstring closure with wooden beads",
+                "Colorful tassel details",
+                'Dimensions: 10" x 12" (diameter x height)',
+                "Adjustable shoulder strap",
+              ],
+              careInstructions: [
+                "Hand wash in cold water",
+                "Reshape while damp",
+                "Air dry away from direct sunlight",
+                "Store stuffed to maintain shape",
+              ],
+              additionalImages: [
+                "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+                "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+                "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+              ],
+            },
+          ];
+
+          // Save default products to Supabase
+          try {
+            await supabase.from("products").upsert(defaultProducts);
+            setProducts(defaultProducts);
+          } catch (dbError) {
+            console.error(
+              "Error saving default products to Supabase:",
+              dbError,
+            );
+            setProducts(defaultProducts);
+          }
+        }
+      } catch (e) {
+        console.error("Error loading products:", e);
+        // Use default products as fallback
+        const defaultProducts = [
+          {
+            id: "1",
+            name: "Daisy Tote Bag",
+            price: 89.99,
+            image:
+              "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+            category: "Tote",
+            tags: ["summer", "floral", "large"],
+            isNew: true,
+            description:
+              "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use.",
+            features: [
+              "Handmade with premium cotton yarn",
+              "Spacious interior",
+            ],
+            careInstructions: ["Hand wash in cold water", "Lay flat to dry"],
+            additionalImages: [
+              "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+              "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+            ],
+          },
+          {
+            id: "2",
+            name: "Summer Crossbody",
+            price: 64.99,
+            image:
+              "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+            category: "Crossbody",
+            tags: ["summer", "small", "casual"],
+            description:
+              "The Summer Crossbody bag is perfect for those days when you want to travel light.",
+            features: ["Lightweight cotton yarn", "Adjustable strap"],
+            careInstructions: ["Spot clean", "Air dry only"],
+            additionalImages: [
+              "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
+              "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
+            ],
+          },
+          {
+            id: "3",
+            name: "Boho Bucket Bag",
+            price: 79.99,
+            image:
+              "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+            category: "Bucket",
+            tags: ["boho", "medium", "pattern"],
+            isNew: true,
+            description: "Embrace bohemian style with our Boho Bucket Bag.",
+            features: ["Eco-friendly cotton yarn", "Drawstring closure"],
+            careInstructions: ["Hand wash", "Reshape while damp"],
+            additionalImages: [
+              "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
+              "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
+            ],
+          },
+        ];
+        setProducts(defaultProducts);
+      }
+    };
+
+    // Load products immediately
+    loadProducts();
+
+    // Set up interval to refresh products less frequently to avoid lag
+    const interval = setInterval(loadProducts, 30000); // 30 seconds instead of 5
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
+  }, [loadCategories]);
+
+  const filteredProducts = products.filter((product) => {
+    // Apply search filter
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (Array.isArray(product.tags) &&
+        product.tags.some((tag) =>
+          tag.toLowerCase().includes(searchQuery.toLowerCase()),
+        ));
+
+    // Apply status filter
+    let matchesStatus = true;
+    if (statusFilter === "new") {
+      matchesStatus = !!product.isNew;
+    } else if (statusFilter === "soldout") {
+      matchesStatus = !!product.isSoldOut;
+    } else if (statusFilter === "available") {
+      matchesStatus = !product.isSoldOut;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -184,36 +413,36 @@ export default function ProductManagement() {
     index: number,
     value: string,
   ) => {
-    const newArray = [
-      ...((formData[field as keyof Product] as string[]) || []),
-    ];
+    const currentArray = (formData[field as keyof Product] as string[]) || [];
+    const newArray = [...currentArray];
     newArray[index] = value;
     setFormData({ ...formData, [field]: newArray });
   };
 
   const addArrayItem = (field: string) => {
-    const newArray = [
-      ...((formData[field as keyof Product] as string[]) || []),
-      "",
-    ];
+    const currentArray = (formData[field as keyof Product] as string[]) || [];
+    const newArray = [...currentArray, ""];
     setFormData({ ...formData, [field]: newArray });
   };
 
   const removeArrayItem = (field: string, index: number) => {
-    const newArray = [
-      ...((formData[field as keyof Product] as string[]) || []),
-    ];
+    const currentArray = (formData[field as keyof Product] as string[]) || [];
+    const newArray = [...currentArray];
     newArray.splice(index, 1);
     setFormData({ ...formData, [field]: newArray });
   };
 
   const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const tagsString = e.target.value;
-    const tagsArray = tagsString
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-    setFormData({ ...formData, tags: tagsArray });
+    // Store the raw input value to allow typing commas
+    setFormData({
+      ...formData,
+      tagsInput: tagsString,
+      tags: tagsString
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    });
   };
 
   const resetForm = () => {
@@ -223,51 +452,211 @@ export default function ProductManagement() {
       image: "",
       category: "",
       tags: [],
+      tagsInput: "",
+      newCategory: "",
       isNew: false,
+      isSoldOut: false,
       description: "",
-      features: [""],
-      careInstructions: [""],
-      additionalImages: [""],
+      features: [],
+      careInstructions: [],
+      additionalImages: [],
     });
   };
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
+    // Use the new category if provided and no existing category is selected
+    const finalCategory = formData.category || formData.newCategory || "";
+
+    // Create the product object without the extra form fields
+    const { tagsInput, newCategory, ...productData } = formData;
+
     const newProduct = {
-      ...formData,
+      ...productData,
+      category: finalCategory,
       id: Date.now().toString(),
+      created_at: new Date().toISOString(),
     } as Product;
 
-    const updatedProducts = [...products, newProduct];
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    resetForm();
-    setIsAddDialogOpen(false);
+    try {
+      // Try to save to Supabase first
+      // Convert arrays to JSON for Supabase
+      const productToSave = {
+        ...newProduct,
+        tags: newProduct.tags || [],
+        features: newProduct.features || [],
+        care_instructions: newProduct.careInstructions || [],
+        additional_images: newProduct.additionalImages || [],
+        is_new: newProduct.isNew,
+        is_sold_out: newProduct.isSoldOut,
+      };
+
+      console.log("Saving product:", productToSave);
+      const { error } = await supabase.from("products").insert(productToSave);
+
+      if (error) throw error;
+
+      // If we have a new category, add it to the categories list
+      if (
+        formData.newCategory &&
+        !categories.some((c) => c.name === formData.newCategory)
+      ) {
+        const newCategoryObj = {
+          id: Date.now(),
+          name: formData.newCategory,
+          slug: formData.newCategory.toLowerCase().replace(/\s+/g, "-"),
+          description: `Category for ${formData.newCategory} products`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          console.log("Adding new category:", newCategoryObj);
+          const { error: categoryError } = await supabase
+            .from("categories")
+            .insert(newCategoryObj);
+          if (categoryError) throw categoryError;
+          setCategories([...categories, newCategoryObj]);
+        } catch (categoryError) {
+          console.error("Error adding new category:", categoryError);
+          // Still add it to local state
+          setCategories([...categories, newCategoryObj]);
+        }
+      }
+
+      // Update local state
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+
+      resetForm();
+      setIsAddDialogOpen(false);
+    } catch (e) {
+      console.error("Error saving product to Supabase:", e);
+      // Fallback to local state only
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+
+      resetForm();
+      setIsAddDialogOpen(false);
+    }
   };
 
-  const handleEditProduct = () => {
+  const handleEditProduct = async () => {
     if (!selectedProduct) return;
 
-    const updatedProducts = products.map((product) =>
-      product.id === selectedProduct.id
-        ? ({ ...formData, id: product.id } as Product)
-        : product,
-    );
+    // Use the new category if provided and no existing category is selected
+    const finalCategory = formData.category || formData.newCategory || "";
 
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    setIsEditDialogOpen(false);
+    // Create the product object without the extra form fields
+    const { tagsInput, newCategory, ...productData } = formData;
+
+    const updatedProduct = {
+      ...productData,
+      category: finalCategory,
+      id: selectedProduct.id,
+      updated_at: new Date().toISOString(),
+    } as Product;
+
+    try {
+      // Try to update in Supabase first
+      // Convert arrays to JSON for Supabase
+      const productToSave = {
+        ...updatedProduct,
+        tags: updatedProduct.tags || [],
+        features: updatedProduct.features || [],
+        care_instructions: updatedProduct.careInstructions || [],
+        additional_images: updatedProduct.additionalImages || [],
+        is_new: updatedProduct.isNew,
+        is_sold_out: updatedProduct.isSoldOut,
+      };
+
+      console.log("Updating product:", productToSave);
+      const { error } = await supabase
+        .from("products")
+        .update(productToSave)
+        .eq("id", selectedProduct.id);
+
+      if (error) throw error;
+
+      // If we have a new category, add it to the categories list
+      if (
+        formData.newCategory &&
+        !categories.some((c) => c.name === formData.newCategory)
+      ) {
+        const newCategoryObj = {
+          id: Date.now(),
+          name: formData.newCategory,
+          slug: formData.newCategory.toLowerCase().replace(/\s+/g, "-"),
+          description: `Category for ${formData.newCategory} products`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          console.log("Adding new category:", newCategoryObj);
+          const { error: categoryError } = await supabase
+            .from("categories")
+            .insert(newCategoryObj);
+          if (categoryError) throw categoryError;
+          setCategories([...categories, newCategoryObj]);
+        } catch (categoryError) {
+          console.error("Error adding new category:", categoryError);
+          // Still add it to local state
+          setCategories([...categories, newCategoryObj]);
+        }
+      }
+
+      // Update local state
+      const updatedProducts = products.map((product) =>
+        product.id === selectedProduct.id ? updatedProduct : product,
+      );
+
+      setProducts(updatedProducts);
+      setIsEditDialogOpen(false);
+    } catch (e) {
+      console.error("Error updating product in Supabase:", e);
+      // Fallback to local state only
+      const updatedProducts = products.map((product) =>
+        product.id === selectedProduct.id ? updatedProduct : product,
+      );
+
+      setProducts(updatedProducts);
+      setIsEditDialogOpen(false);
+    }
   };
 
-  const handleDeleteProduct = () => {
+  const handleDeleteProduct = async () => {
     if (!selectedProduct) return;
 
-    const updatedProducts = products.filter(
-      (product) => product.id !== selectedProduct.id,
-    );
+    try {
+      // Try to delete from Supabase first
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", selectedProduct.id);
 
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
-    setIsDeleteDialogOpen(false);
+      if (error) throw error;
+
+      // Update local state
+      const updatedProducts = products.filter(
+        (product) => product.id !== selectedProduct.id,
+      );
+
+      setProducts(updatedProducts);
+
+      // Update local state only
+
+      setIsDeleteDialogOpen(false);
+    } catch (e) {
+      console.error("Error deleting product from Supabase:", e);
+      // Fallback to local state only
+      const updatedProducts = products.filter(
+        (product) => product.id !== selectedProduct.id,
+      );
+
+      setProducts(updatedProducts);
+
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const openEditDialog = (product: Product) => {
@@ -277,12 +666,18 @@ export default function ProductManagement() {
       price: product.price,
       image: product.image,
       category: product.category,
-      tags: product.tags,
+      tags: Array.isArray(product.tags) ? product.tags : [],
+      tagsInput: Array.isArray(product.tags) ? product.tags.join(", ") : "",
       isNew: product.isNew || false,
+      isSoldOut: product.isSoldOut || false,
       description: product.description || "",
-      features: product.features || [""],
-      careInstructions: product.careInstructions || [""],
-      additionalImages: product.additionalImages || [""],
+      features: Array.isArray(product.features) ? product.features : [],
+      careInstructions: Array.isArray(product.careInstructions)
+        ? product.careInstructions
+        : [],
+      additionalImages: Array.isArray(product.additionalImages)
+        ? product.additionalImages
+        : [],
     });
     setIsEditDialogOpen(true);
   };
@@ -294,23 +689,36 @@ export default function ProductManagement() {
 
   return (
     <AdminLayout title="Product Management" activeTab="products">
-      <div className="flex justify-between items-center mb-6">
-        <div className="relative w-64">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <Input
-            placeholder="Search products..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative w-64">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+            <Input
+              placeholder="Search products..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <select
+            className="h-10 px-3 py-2 rounded-md border border-[#5B1A1A]/20 bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1A1A]/20 focus-visible:ring-offset-2 border-[#5B1A1A]/20 focus:border-[#5B1A1A] text-[#5B1A1A]"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Products</option>
+            <option value="new">New Arrivals</option>
+            <option value="soldout">Sold Out</option>
+            <option value="available">Available</option>
+          </select>
         </div>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90">
+            <Button className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]">
               <Plus className="mr-2 h-4 w-4" /> Add Product
             </Button>
           </DialogTrigger>
@@ -345,13 +753,46 @@ export default function ProductManagement() {
 
                 <div>
                   <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    placeholder="Enter category"
-                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <select
+                        id="category"
+                        name="category"
+                        value={formData.category}
+                        onChange={(e) =>
+                          setFormData({ ...formData, category: e.target.value })
+                        }
+                        className="flex h-10 w-full rounded-md border border-[#5B1A1A]/20 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1A1A]/20 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[#5B1A1A]"
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.name}>
+                            {category.name}
+                          </option>
+                        ))}
+                        {formData.newCategory && (
+                          <option value={formData.newCategory}>
+                            {formData.newCategory}
+                          </option>
+                        )}
+                      </select>
+                    </div>
+                    <div className="w-1/3">
+                      <Input
+                        id="newCategory"
+                        name="newCategory"
+                        value={formData.newCategory}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            newCategory: e.target.value,
+                          })
+                        }
+                        placeholder="New category"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -359,19 +800,31 @@ export default function ProductManagement() {
                   <Input
                     id="tags"
                     name="tags"
-                    value={formData.tags?.join(", ")}
+                    value={formData.tagsInput}
                     onChange={handleTagsChange}
                     placeholder="summer, floral, large"
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isNew"
-                    checked={formData.isNew}
-                    onCheckedChange={handleCheckboxChange}
-                  />
-                  <Label htmlFor="isNew">Mark as New Arrival</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isNew"
+                      checked={formData.isNew}
+                      onCheckedChange={handleCheckboxChange}
+                    />
+                    <Label htmlFor="isNew">Mark as New Arrival</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isSoldOut"
+                      checked={formData.isSoldOut}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, isSoldOut: checked })
+                      }
+                    />
+                    <Label htmlFor="isSoldOut">Mark as Sold Out</Label>
+                  </div>
                 </div>
               </div>
 
@@ -406,110 +859,126 @@ export default function ProductManagement() {
             <div className="space-y-4">
               <div>
                 <Label>Additional Images</Label>
-                {formData.additionalImages?.map((url, index) => (
-                  <div key={index} className="flex items-center mt-2">
-                    <Input
-                      value={url}
-                      onChange={(e) =>
-                        handleArrayInputChange(
-                          "additionalImages",
-                          index,
-                          e.target.value,
-                        )
-                      }
-                      placeholder="Enter image URL"
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeArrayItem("additionalImages", index)}
-                      className="ml-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addArrayItem("additionalImages")}
-                  className="mt-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Add Image
-                </Button>
+                <div className="mt-2">
+                  {formData.additionalImages &&
+                    Array.isArray(formData.additionalImages) &&
+                    formData.additionalImages.map((url, index) => (
+                      <div key={index} className="flex items-center mb-2">
+                        <Input
+                          value={url}
+                          onChange={(e) =>
+                            handleArrayInputChange(
+                              "additionalImages",
+                              index,
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Enter image URL"
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            removeArrayItem("additionalImages", index)
+                          }
+                          className="ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addArrayItem("additionalImages")}
+                    className="w-full mt-2"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Image
+                  </Button>
+                </div>
               </div>
 
               <div>
                 <Label>Features</Label>
-                {formData.features?.map((feature, index) => (
-                  <div key={index} className="flex items-center mt-2">
-                    <Input
-                      value={feature}
-                      onChange={(e) =>
-                        handleArrayInputChange(
-                          "features",
-                          index,
-                          e.target.value,
-                        )
-                      }
-                      placeholder="Enter feature"
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeArrayItem("features", index)}
-                      className="ml-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addArrayItem("features")}
-                  className="mt-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Add Feature
-                </Button>
+                <div className="mt-2">
+                  {formData.features &&
+                    Array.isArray(formData.features) &&
+                    formData.features.map((feature, index) => (
+                      <div key={index} className="flex items-center mb-2">
+                        <Input
+                          value={feature}
+                          onChange={(e) =>
+                            handleArrayInputChange(
+                              "features",
+                              index,
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Enter feature"
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeArrayItem("features", index)}
+                          className="ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addArrayItem("features")}
+                    className="w-full mt-2"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Feature
+                  </Button>
+                </div>
               </div>
 
               <div>
                 <Label>Care Instructions</Label>
-                {formData.careInstructions?.map((instruction, index) => (
-                  <div key={index} className="flex items-center mt-2">
-                    <Input
-                      value={instruction}
-                      onChange={(e) =>
-                        handleArrayInputChange(
-                          "careInstructions",
-                          index,
-                          e.target.value,
-                        )
-                      }
-                      placeholder="Enter care instruction"
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeArrayItem("careInstructions", index)}
-                      className="ml-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addArrayItem("careInstructions")}
-                  className="mt-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Add Instruction
-                </Button>
+                <div className="mt-2">
+                  {formData.careInstructions &&
+                    Array.isArray(formData.careInstructions) &&
+                    formData.careInstructions.map((instruction, index) => (
+                      <div key={index} className="flex items-center mb-2">
+                        <Input
+                          value={instruction}
+                          onChange={(e) =>
+                            handleArrayInputChange(
+                              "careInstructions",
+                              index,
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Enter care instruction"
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            removeArrayItem("careInstructions", index)
+                          }
+                          className="ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addArrayItem("careInstructions")}
+                    className="w-full mt-2"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Instruction
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -521,7 +990,7 @@ export default function ProductManagement() {
                 Cancel
               </Button>
               <Button
-                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
+                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
                 onClick={handleAddProduct}
               >
                 Add Product
@@ -553,7 +1022,13 @@ export default function ProductManagement() {
               </TableRow>
             ) : (
               filteredProducts.map((product) => (
-                <TableRow key={product.id}>
+                <motion.tr
+                  key={product.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="hover:bg-[#F5DDEB]/10 transition-colors duration-200"
+                >
                   <TableCell>
                     <div className="h-12 w-12 rounded overflow-hidden">
                       <img
@@ -565,22 +1040,38 @@ export default function ProductManagement() {
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.category}</TableCell>
-                  <TableCell>৳{product.price.toFixed(2)}</TableCell>
+                  <TableCell>
+                    ৳
+                    {typeof product.price === "number"
+                      ? product.price.toFixed(2)
+                      : "0.00"}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {product.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                      {Array.isArray(product.tags)
+                        ? product.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {tag}
+                            </Badge>
+                          ))
+                        : null}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {product.isNew && (
-                      <Badge className="bg-[#5B1A1A] text-white">
-                        New Arrival
-                      </Badge>
-                    )}
+                    <div className="space-y-1">
+                      {product.isNew && (
+                        <Badge className="bg-[#5B1A1A] text-white">
+                          New Arrival
+                        </Badge>
+                      )}
+                      {product.isSoldOut && (
+                        <Badge className="bg-black text-white">Sold Out</Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -598,7 +1089,7 @@ export default function ProductManagement() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))
             )}
           </TableBody>
@@ -638,13 +1129,46 @@ export default function ProductManagement() {
 
               <div>
                 <Label htmlFor="edit-category">Category</Label>
-                <Input
-                  id="edit-category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  placeholder="Enter category"
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <select
+                      id="edit-category"
+                      name="category"
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
+                      className="flex h-10 w-full rounded-md border border-[#5B1A1A]/20 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1A1A]/20 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-[#5B1A1A]"
+                    >
+                      <option value="">Select a category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                      {formData.newCategory && (
+                        <option value={formData.newCategory}>
+                          {formData.newCategory}
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                  <div className="w-1/3">
+                    <Input
+                      id="edit-newCategory"
+                      name="newCategory"
+                      value={formData.newCategory}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          newCategory: e.target.value,
+                        })
+                      }
+                      placeholder="New category"
+                      className="h-10"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -652,19 +1176,31 @@ export default function ProductManagement() {
                 <Input
                   id="edit-tags"
                   name="tags"
-                  value={formData.tags?.join(", ")}
+                  value={formData.tagsInput}
                   onChange={handleTagsChange}
                   placeholder="summer, floral, large"
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-isNew"
-                  checked={formData.isNew}
-                  onCheckedChange={handleCheckboxChange}
-                />
-                <Label htmlFor="edit-isNew">Mark as New Arrival</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-isNew"
+                    checked={formData.isNew}
+                    onCheckedChange={handleCheckboxChange}
+                  />
+                  <Label htmlFor="edit-isNew">Mark as New Arrival</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-isSoldOut"
+                    checked={formData.isSoldOut}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isSoldOut: checked })
+                    }
+                  />
+                  <Label htmlFor="edit-isSoldOut">Mark as Sold Out</Label>
+                </div>
               </div>
             </div>
 
@@ -699,106 +1235,126 @@ export default function ProductManagement() {
           <div className="space-y-4">
             <div>
               <Label>Additional Images</Label>
-              {formData.additionalImages?.map((url, index) => (
-                <div key={index} className="flex items-center mt-2">
-                  <Input
-                    value={url}
-                    onChange={(e) =>
-                      handleArrayInputChange(
-                        "additionalImages",
-                        index,
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Enter image URL"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeArrayItem("additionalImages", index)}
-                    className="ml-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addArrayItem("additionalImages")}
-                className="mt-2"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add Image
-              </Button>
+              <div className="mt-2">
+                {formData.additionalImages &&
+                  Array.isArray(formData.additionalImages) &&
+                  formData.additionalImages.map((url, index) => (
+                    <div key={index} className="flex items-center mb-2">
+                      <Input
+                        value={url}
+                        onChange={(e) =>
+                          handleArrayInputChange(
+                            "additionalImages",
+                            index,
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Enter image URL"
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          removeArrayItem("additionalImages", index)
+                        }
+                        className="ml-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addArrayItem("additionalImages")}
+                  className="w-full mt-2"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Image
+                </Button>
+              </div>
             </div>
 
             <div>
               <Label>Features</Label>
-              {formData.features?.map((feature, index) => (
-                <div key={index} className="flex items-center mt-2">
-                  <Input
-                    value={feature}
-                    onChange={(e) =>
-                      handleArrayInputChange("features", index, e.target.value)
-                    }
-                    placeholder="Enter feature"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeArrayItem("features", index)}
-                    className="ml-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addArrayItem("features")}
-                className="mt-2"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add Feature
-              </Button>
+              <div className="mt-2">
+                {formData.features &&
+                  Array.isArray(formData.features) &&
+                  formData.features.map((feature, index) => (
+                    <div key={index} className="flex items-center mb-2">
+                      <Input
+                        value={feature}
+                        onChange={(e) =>
+                          handleArrayInputChange(
+                            "features",
+                            index,
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Enter feature"
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeArrayItem("features", index)}
+                        className="ml-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addArrayItem("features")}
+                  className="w-full mt-2"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Feature
+                </Button>
+              </div>
             </div>
 
             <div>
               <Label>Care Instructions</Label>
-              {formData.careInstructions?.map((instruction, index) => (
-                <div key={index} className="flex items-center mt-2">
-                  <Input
-                    value={instruction}
-                    onChange={(e) =>
-                      handleArrayInputChange(
-                        "careInstructions",
-                        index,
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Enter care instruction"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeArrayItem("careInstructions", index)}
-                    className="ml-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => addArrayItem("careInstructions")}
-                className="mt-2"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add Instruction
-              </Button>
+              <div className="mt-2">
+                {formData.careInstructions &&
+                  Array.isArray(formData.careInstructions) &&
+                  formData.careInstructions.map((instruction, index) => (
+                    <div key={index} className="flex items-center mb-2">
+                      <Input
+                        value={instruction}
+                        onChange={(e) =>
+                          handleArrayInputChange(
+                            "careInstructions",
+                            index,
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Enter care instruction"
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          removeArrayItem("careInstructions", index)
+                        }
+                        className="ml-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addArrayItem("careInstructions")}
+                  className="w-full mt-2"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Instruction
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -810,7 +1366,7 @@ export default function ProductManagement() {
               Cancel
             </Button>
             <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
+              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
               onClick={handleEditProduct}
             >
               Save Changes

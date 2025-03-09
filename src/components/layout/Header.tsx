@@ -85,38 +85,6 @@ export default function Header({ transparent = false }: HeaderProps) {
               {cart.getCartCount()}
             </span>
           </Button>
-
-          {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full border-2 border-[#F5DDEB] bg-[#F5DDEB] text-[#5B1A1A] hover:bg-[#F5DDEB]/80 hover:border-[#F5DDEB]/80 transition-colors"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="bg-white text-[#5B1A1A]"
-              >
-                <DropdownMenuItem>
-                  <Link to="/admin" className="w-full">
-                    Admin Dashboard
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link to="/profile" className="w-full">
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut()}>
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -171,33 +139,6 @@ export default function Header({ transparent = false }: HeaderProps) {
                       {cart.getCartCount()}
                     </span>
                   </Button>
-                  {user && (
-                    <>
-                      <Link
-                        to="/admin"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl border-2 border-[#F5DDEB] bg-[#F5DDEB] text-[#5B1A1A] hover:bg-[#F5DDEB]/80 hover:border-[#F5DDEB]/80 transition-colors"
-                        >
-                          Admin Dashboard
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl border-2 border-[#F5DDEB] bg-[#F5DDEB] text-[#5B1A1A] hover:bg-[#F5DDEB]/80 hover:border-[#F5DDEB]/80 transition-colors"
-                        onClick={() => {
-                          signOut();
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        Log out
-                      </Button>
-                    </>
-                  )}
                 </div>
               </nav>
             </div>

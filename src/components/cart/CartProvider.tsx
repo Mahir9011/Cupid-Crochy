@@ -49,13 +49,13 @@ export function CartProvider({ children }: CartProviderProps) {
 
   // Load cart from localStorage on initial render
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
         setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Failed to parse cart from localStorage", e);
       }
+    } catch (e) {
+      console.error("Failed to parse cart from localStorage", e);
     }
   }, []);
 

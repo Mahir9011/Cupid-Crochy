@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../../../supabase/auth";
-import OrderManagement from "../admin/OrderManagement";
+import CategoryManagement from "../admin/CategoryManagement";
 import "../admin/AdminLayout.css";
 
-export default function AdminOrdersPage() {
+export default function AdminCategoriesPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -26,5 +26,5 @@ export default function AdminOrdersPage() {
     return <Navigate to="/login" />;
   }
 
-  return <OrderManagement />;
+  return <CategoryManagement />;
 }

@@ -9,7 +9,197 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: number
+          image: string
+          name: string
+          order_id: number | null
+          price: number
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          image: string
+          name: string
+          order_id?: number | null
+          price: number
+          product_id: string
+          quantity?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          image?: string
+          name?: string
+          order_id?: number | null
+          price?: number
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          date: string | null
+          email: string
+          id: number
+          name: string
+          notes: string | null
+          order_number: string
+          phone: string | null
+          status: string
+          total: number
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          date?: string | null
+          email: string
+          id?: number
+          name: string
+          notes?: string | null
+          order_number: string
+          phone?: string | null
+          status?: string
+          total: number
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          date?: string | null
+          email?: string
+          id?: number
+          name?: string
+          notes?: string | null
+          order_number?: string
+          phone?: string | null
+          status?: string
+          total?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          additional_images: string[] | null
+          care_instructions: string[] | null
+          category: string
+          created_at: string | null
+          description: string | null
+          features: string[] | null
+          id: string
+          image: string
+          is_new: boolean | null
+          is_sold_out: boolean | null
+          name: string
+          price: number
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          additional_images?: string[] | null
+          care_instructions?: string[] | null
+          category: string
+          created_at?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          image: string
+          is_new?: boolean | null
+          is_sold_out?: boolean | null
+          name: string
+          price: number
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          additional_images?: string[] | null
+          care_instructions?: string[] | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          image?: string
+          is_new?: boolean | null
+          is_sold_out?: boolean | null
+          name?: string
+          price?: number
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string | null
+          id: number
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

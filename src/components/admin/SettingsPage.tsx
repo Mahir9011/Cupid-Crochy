@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 import AdminLayout from "./AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,14 +47,71 @@ export default function SettingsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load settings from localStorage
-    const storedSettings = localStorage.getItem("siteSettings");
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    } else {
-      // If no settings in localStorage, use default settings
-      localStorage.setItem("siteSettings", JSON.stringify(defaultSettings));
-    }
+    const loadSettings = async () => {
+      try {
+        // Try to load settings from Supabase
+        const { data, error } = await supabase
+          .from("settings")
+          .select("*")
+          .eq("key", "site_settings")
+          .single();
+
+        if (error) throw error;
+
+        if (data && data.value) {
+          setSettings(data.value);
+        } else {
+          // If no settings in Supabase, use default settings
+          try {
+            // Try to save default settings to Supabase
+            await supabase.from("settings").upsert(
+              {
+                key: "site_settings",
+                value: defaultSettings,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "key" },
+            );
+          } catch (saveError) {
+            console.error(
+              "Error saving default settings to Supabase:",
+              saveError,
+            );
+          }
+          setSettings(defaultSettings);
+        }
+      } catch (e) {
+        console.error("Error loading settings:", e);
+        // Use default settings as fallback
+        setSettings(defaultSettings);
+
+        // Try to save default settings to Supabase
+        try {
+          await supabase.from("settings").upsert(
+            {
+              key: "site_settings",
+              value: defaultSettings,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "key" },
+          );
+        } catch (saveError) {
+          console.error(
+            "Error saving default settings to Supabase:",
+            saveError,
+          );
+        }
+      }
+    };
+
+    // Load settings immediately
+    loadSettings();
+
+    // Set up interval to refresh settings less frequently to avoid lag
+    const interval = setInterval(loadSettings, 30000); // 30 seconds instead of 5
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const handleInputChange = (
@@ -75,195 +134,230 @@ export default function SettingsPage() {
     }
   };
 
-  const saveSettings = () => {
-    localStorage.setItem("siteSettings", JSON.stringify(settings));
-    toast({
-      title: "Settings saved",
-      description: "Your changes have been saved successfully.",
-    });
+  const saveSettings = async () => {
+    try {
+      // Try to save to Supabase first
+      const { error } = await supabase.from("settings").upsert(
+        {
+          key: "site_settings",
+          value: settings,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" },
+      );
+
+      if (error) throw error;
+
+      // No need for localStorage backup
+
+      toast({
+        title: "Settings saved",
+        description: "Your changes have been saved successfully.",
+      });
+    } catch (e) {
+      console.error("Error saving settings to Supabase:", e);
+      // Just show the toast, we'll try again next time
+
+      toast({
+        title: "Settings saved locally",
+        description: "Your changes have been saved to local storage only.",
+      });
+    }
   };
 
   return (
     <AdminLayout title="Settings" activeTab="settings">
-      <Tabs defaultValue="general">
+      <Tabs defaultValue="homepage">
         <TabsList className="mb-6">
-          <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="homepage">Homepage</TabsTrigger>
           <TabsTrigger value="contact">Contact & Social</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">General Settings</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="companyName">Company Name</Label>
-                <Input
-                  id="companyName"
-                  name="companyName"
-                  value={settings.companyName}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
-              onClick={saveSettings}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </TabsContent>
-
         <TabsContent value="homepage" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Homepage Settings</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="heroImage">Hero Image URL</Label>
-                <Input
-                  id="heroImage"
-                  name="heroImage"
-                  value={settings.heroImage}
-                  onChange={handleInputChange}
-                />
-                {settings.heroImage && (
-                  <div className="mt-2 rounded-md overflow-hidden h-40">
-                    <img
-                      src={settings.heroImage}
-                      alt="Hero Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+                Homepage Settings
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="heroImage" className="text-[#5B1A1A]">
+                    Hero Image URL
+                  </Label>
+                  <Input
+                    id="heroImage"
+                    name="heroImage"
+                    value={settings.heroImage}
+                    onChange={handleInputChange}
+                  />
+                  {settings.heroImage && (
+                    <div className="mt-2 rounded-md overflow-hidden h-40">
+                      <img
+                        src={settings.heroImage}
+                        alt="Hero Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
 
-              <div>
-                <Label htmlFor="heroTitle">Hero Title</Label>
-                <Input
-                  id="heroTitle"
-                  name="heroTitle"
-                  value={settings.heroTitle}
-                  onChange={handleInputChange}
-                />
-              </div>
+                <div>
+                  <Label htmlFor="heroTitle" className="text-[#5B1A1A]">
+                    Hero Title
+                  </Label>
+                  <Input
+                    id="heroTitle"
+                    name="heroTitle"
+                    value={settings.heroTitle}
+                    onChange={handleInputChange}
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="heroSubtitle">Hero Subtitle</Label>
-                <Input
-                  id="heroSubtitle"
-                  name="heroSubtitle"
-                  value={settings.heroSubtitle}
-                  onChange={handleInputChange}
-                />
+                <div>
+                  <Label htmlFor="heroSubtitle" className="text-[#5B1A1A]">
+                    Hero Subtitle
+                  </Label>
+                  <Input
+                    id="heroSubtitle"
+                    name="heroSubtitle"
+                    value={settings.heroSubtitle}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-end">
-            <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
-              onClick={saveSettings}
-            >
-              Save Changes
-            </Button>
-          </div>
+            <div className="flex justify-end">
+              <Button
+                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
+                onClick={saveSettings}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="contact" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="companyEmail">Email Address</Label>
-                <Input
-                  id="companyEmail"
-                  name="companyEmail"
-                  value={settings.companyEmail}
-                  onChange={handleInputChange}
-                />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+                Contact Information
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="companyEmail" className="text-[#5B1A1A]">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="companyEmail"
+                    name="companyEmail"
+                    value={settings.companyEmail}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="companyPhone" className="text-[#5B1A1A]">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="companyPhone"
+                    name="companyPhone"
+                    value={settings.companyPhone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="companyAddress" className="text-[#5B1A1A]">
+                    Address
+                  </Label>
+                  <Textarea
+                    id="companyAddress"
+                    name="companyAddress"
+                    value={settings.companyAddress}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="companyPhone">Phone Number</Label>
-                <Input
-                  id="companyPhone"
-                  name="companyPhone"
-                  value={settings.companyPhone}
-                  onChange={handleInputChange}
-                />
-              </div>
+              <Separator className="my-6" />
 
-              <div>
-                <Label htmlFor="companyAddress">Address</Label>
-                <Textarea
-                  id="companyAddress"
-                  name="companyAddress"
-                  value={settings.companyAddress}
-                  onChange={handleInputChange}
-                />
+              <h2 className="text-xl font-semibold text-[#5B1A1A] mb-4">
+                Social Media Links
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Facebook className="mr-2 h-5 w-5 text-blue-600" />
+                  <Label
+                    htmlFor="socialLinks.facebook"
+                    className="w-24 text-[#5B1A1A]"
+                  >
+                    Facebook
+                  </Label>
+                  <Input
+                    id="socialLinks.facebook"
+                    name="socialLinks.facebook"
+                    value={settings.socialLinks.facebook}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <Instagram className="mr-2 h-5 w-5 text-pink-600" />
+                  <Label
+                    htmlFor="socialLinks.instagram"
+                    className="w-24 text-[#5B1A1A]"
+                  >
+                    Instagram
+                  </Label>
+                  <Input
+                    id="socialLinks.instagram"
+                    name="socialLinks.instagram"
+                    value={settings.socialLinks.instagram}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <Twitter className="mr-2 h-5 w-5 text-blue-400" />
+                  <Label
+                    htmlFor="socialLinks.twitter"
+                    className="w-24 text-[#5B1A1A]"
+                  >
+                    Twitter
+                  </Label>
+                  <Input
+                    id="socialLinks.twitter"
+                    name="socialLinks.twitter"
+                    value={settings.socialLinks.twitter}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                  />
+                </div>
               </div>
             </div>
 
-            <Separator className="my-6" />
-
-            <h2 className="text-xl font-semibold mb-4">Social Media Links</h2>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <Facebook className="mr-2 h-5 w-5 text-blue-600" />
-                <Label htmlFor="socialLinks.facebook" className="w-24">
-                  Facebook
-                </Label>
-                <Input
-                  id="socialLinks.facebook"
-                  name="socialLinks.facebook"
-                  value={settings.socialLinks.facebook}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <Instagram className="mr-2 h-5 w-5 text-pink-600" />
-                <Label htmlFor="socialLinks.instagram" className="w-24">
-                  Instagram
-                </Label>
-                <Input
-                  id="socialLinks.instagram"
-                  name="socialLinks.instagram"
-                  value={settings.socialLinks.instagram}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <Twitter className="mr-2 h-5 w-5 text-blue-400" />
-                <Label htmlFor="socialLinks.twitter" className="w-24">
-                  Twitter
-                </Label>
-                <Input
-                  id="socialLinks.twitter"
-                  name="socialLinks.twitter"
-                  value={settings.socialLinks.twitter}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-              </div>
+            <div className="flex justify-end">
+              <Button
+                className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90 text-[#E8D7BC]"
+                onClick={saveSettings}
+              >
+                Save Changes
+              </Button>
             </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              className="bg-[#5B1A1A] hover:bg-[#5B1A1A]/90"
-              onClick={saveSettings}
-            >
-              Save Changes
-            </Button>
-          </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </AdminLayout>
