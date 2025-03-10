@@ -80,6 +80,7 @@ export default function LoginForm() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="border-[#5B1A1A]/20 focus:border-[#5B1A1A] rounded-xl"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -94,6 +95,7 @@ export default function LoginForm() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="border-[#5B1A1A]/20 focus:border-[#5B1A1A] rounded-xl"
+                    autoComplete="current-password"
                     required
                   />
                 </div>
