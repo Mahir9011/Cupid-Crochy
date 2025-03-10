@@ -30,169 +30,27 @@ export async function getProducts() {
               ? product.features
               : [],
         careInstructions:
-          typeof product.careInstructions === "string"
-            ? JSON.parse(product.careInstructions)
-            : Array.isArray(product.careInstructions)
-              ? product.careInstructions
+          typeof product.care_instructions === "string"
+            ? JSON.parse(product.care_instructions)
+            : Array.isArray(product.care_instructions)
+              ? product.care_instructions
               : [],
         additionalImages:
-          typeof product.additionalImages === "string"
-            ? JSON.parse(product.additionalImages)
-            : Array.isArray(product.additionalImages)
-              ? product.additionalImages
+          typeof product.additional_images === "string"
+            ? JSON.parse(product.additional_images)
+            : Array.isArray(product.additional_images)
+              ? product.additional_images
               : [],
+        isNew: product.is_new,
+        isSoldOut: product.is_sold_out,
       }));
     }
 
-    // If no products in database, create default products
-    const defaultProducts = [
-      {
-        id: "1",
-        name: "Daisy Tote Bag",
-        price: 89.99,
-        image:
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        category: "Tote",
-        tags: ["summer", "floral", "large"],
-        isNew: true,
-        description:
-          "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use. Handcrafted with care using premium cotton yarn, this bag features a beautiful daisy pattern that adds a touch of elegance to any outfit.",
-        features: [
-          "Handmade with premium cotton yarn",
-          "Spacious interior with inner pocket",
-          "Reinforced handles for durability",
-        ],
-        careInstructions: [
-          "Hand wash in cold water",
-          "Lay flat to dry",
-          "Do not bleach",
-        ],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        ],
-      },
-      {
-        id: "2",
-        name: "Summer Crossbody",
-        price: 64.99,
-        image:
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        category: "Crossbody",
-        tags: ["summer", "small", "casual"],
-        description:
-          "The Summer Crossbody bag is perfect for those days when you want to travel light. This compact yet stylish bag features an adjustable strap and secure closure to keep your essentials safe.",
-        features: [
-          "Handcrafted with lightweight cotton yarn",
-          "Adjustable crossbody strap",
-          "Secure zipper closure",
-        ],
-        careInstructions: [
-          "Spot clean with mild detergent",
-          "Air dry only",
-          "Do not iron",
-        ],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
-        ],
-      },
-      {
-        id: "3",
-        name: "Boho Bucket Bag",
-        price: 79.99,
-        image:
-          "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-        category: "Bucket",
-        tags: ["boho", "medium", "pattern"],
-        isNew: true,
-        isSoldOut: true,
-        description:
-          "Embrace bohemian style with our Boho Bucket Bag. This trendy accessory features intricate pattern work and a drawstring closure for a secure yet easy-access design.",
-        features: [
-          "Handcrafted with eco-friendly cotton yarn",
-          "Drawstring closure with wooden beads",
-          "Colorful tassel details",
-        ],
-        careInstructions: [
-          "Hand wash in cold water",
-          "Reshape while damp",
-          "Air dry away from direct sunlight",
-        ],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        ],
-      },
-    ];
-
-    // Try to save default products to database
-    try {
-      await supabase.from("products").upsert(defaultProducts);
-      return defaultProducts;
-    } catch (insertError) {
-      console.error("Error inserting default products:", insertError);
-      return defaultProducts;
-    }
+    // Return empty array - no default products
+    return [];
   } catch (error) {
     console.error("Error fetching products:", error);
-
-    // Return default products if all else fails
-    return [
-      {
-        id: "1",
-        name: "Daisy Tote Bag",
-        price: 89.99,
-        image:
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        category: "Tote",
-        tags: ["summer", "floral", "large"],
-        isNew: true,
-        description:
-          "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use.",
-        features: ["Handmade with premium cotton yarn", "Spacious interior"],
-        careInstructions: ["Hand wash in cold water", "Lay flat to dry"],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        ],
-      },
-      {
-        id: "2",
-        name: "Summer Crossbody",
-        price: 64.99,
-        image:
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        category: "Crossbody",
-        tags: ["summer", "small", "casual"],
-        description:
-          "The Summer Crossbody bag is perfect for those days when you want to travel light.",
-        features: ["Lightweight cotton yarn", "Adjustable strap"],
-        careInstructions: ["Spot clean", "Air dry only"],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
-        ],
-      },
-      {
-        id: "3",
-        name: "Boho Bucket Bag",
-        price: 79.99,
-        image:
-          "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-        category: "Bucket",
-        tags: ["boho", "medium", "pattern"],
-        isNew: true,
-        isSoldOut: true,
-        description: "Embrace bohemian style with our Boho Bucket Bag.",
-        features: ["Eco-friendly cotton yarn", "Drawstring closure"],
-        careInstructions: ["Hand wash", "Reshape while damp"],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        ],
-      },
-    ];
+    return [];
   }
 }
 
@@ -223,17 +81,19 @@ export async function getProductById(id: string) {
               ? data.features
               : [],
         careInstructions:
-          typeof data.careInstructions === "string"
-            ? JSON.parse(data.careInstructions)
-            : Array.isArray(data.careInstructions)
-              ? data.careInstructions
+          typeof data.care_instructions === "string"
+            ? JSON.parse(data.care_instructions)
+            : Array.isArray(data.care_instructions)
+              ? data.care_instructions
               : [],
         additionalImages:
-          typeof data.additionalImages === "string"
-            ? JSON.parse(data.additionalImages)
-            : Array.isArray(data.additionalImages)
-              ? data.additionalImages
+          typeof data.additional_images === "string"
+            ? JSON.parse(data.additional_images)
+            : Array.isArray(data.additional_images)
+              ? data.additional_images
               : [],
+        isNew: data.is_new,
+        isSoldOut: data.is_sold_out,
       };
     }
     return data;
@@ -250,64 +110,8 @@ export async function getProductById(id: string) {
       console.error("Error loading product from localStorage:", e);
     }
 
-    // Return a default product if all else fails
-    const defaultProducts = [
-      {
-        id: "1",
-        name: "Daisy Tote Bag",
-        price: 89.99,
-        image:
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        category: "Tote",
-        tags: ["summer", "floral", "large"],
-        isNew: true,
-        description:
-          "The Daisy Tote Bag is a spacious and stylish accessory perfect for everyday use.",
-        features: ["Handmade with premium cotton yarn", "Spacious interior"],
-        careInstructions: ["Hand wash in cold water", "Lay flat to dry"],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        ],
-      },
-      {
-        id: "2",
-        name: "Summer Crossbody",
-        price: 64.99,
-        image:
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-        category: "Crossbody",
-        tags: ["summer", "small", "casual"],
-        description:
-          "The Summer Crossbody bag is perfect for those days when you want to travel light.",
-        features: ["Lightweight cotton yarn", "Adjustable strap"],
-        careInstructions: ["Spot clean", "Air dry only"],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800&q=80",
-          "https://images.unsplash.com/photo-1575032617751-6ddec2089882?w=800&q=80",
-        ],
-      },
-      {
-        id: "3",
-        name: "Boho Bucket Bag",
-        price: 79.99,
-        image:
-          "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-        category: "Bucket",
-        tags: ["boho", "medium", "pattern"],
-        isNew: true,
-        isSoldOut: true,
-        description: "Embrace bohemian style with our Boho Bucket Bag.",
-        features: ["Eco-friendly cotton yarn", "Drawstring closure"],
-        careInstructions: ["Hand wash", "Reshape while damp"],
-        additionalImages: [
-          "https://images.unsplash.com/photo-1591561954557-26941169b49e?w=800&q=80",
-          "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=800&q=80",
-        ],
-      },
-    ];
-
-    return defaultProducts.find((p) => p.id === id) || null;
+    // Return null if product not found
+    return null;
   }
 }
 

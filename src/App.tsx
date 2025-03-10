@@ -16,7 +16,6 @@ import AdminPage from "./components/pages/AdminPage";
 import AdminProductsPage from "./components/pages/AdminProductsPage";
 import AdminOrdersPage from "./components/pages/AdminOrdersPage";
 import AdminSettingsPage from "./components/pages/AdminSettingsPage";
-import AdminCategoriesPage from "./components/pages/AdminCategoriesPage";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -59,41 +58,43 @@ function AppRoutes() {
         <Route path="/order-tracking" element={<OrderTrackingPage />} />
 
         {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            <PrivateRoute>
-              <AdminPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/admin/products"
-          element={
-            <PrivateRoute>
-              <AdminProductsPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/admin/orders"
-          element={
-            <PrivateRoute>
-              <AdminOrdersPage />
-            </PrivateRoute>
-          }
-        />
-        {/* Categories section removed as requested */}
-        <Route
-          path="/admin/settings"
-          element={
-            <PrivateRoute>
-              <AdminSettingsPage />
-            </PrivateRoute>
-          }
-        />
+        <Route path="/admin">
+          <Route
+            index
+            element={
+              <PrivateRoute>
+                <AdminPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="products"
+            element={
+              <PrivateRoute>
+                <AdminProductsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="orders"
+            element={
+              <PrivateRoute>
+                <AdminOrdersPage />
+              </PrivateRoute>
+            }
+          />
+          {/* Categories section removed as requested */}
+          <Route
+            path="settings"
+            element={
+              <PrivateRoute>
+                <AdminSettingsPage />
+              </PrivateRoute>
+            }
+          />
+        </Route>
       </Routes>
-      {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+      {import.meta.env.VITE_TEMPO && useRoutes(routes)}
     </>
   );
 }
